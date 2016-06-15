@@ -1,0 +1,3 @@
+Member:
+  extensions:
+    - Bigfork\SilverStripeOAuth\Client\Extension\MemberExtension

@@ -1,0 +1,3 @@
+Director:
+  rules:
+    'oauth': 'Bigfork\SilverStripeOAuth\Client\Control\Controller'
