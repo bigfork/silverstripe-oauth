@@ -1,0 +1,5 @@
+- Abstract registration from authorization - separate module entirely?
+- Documentation
+- Collaborators? Can this be resolved by registering Injector services in _config.php?
+- One token per provider for each user? Any value in multiple tokens?
+- Tests
