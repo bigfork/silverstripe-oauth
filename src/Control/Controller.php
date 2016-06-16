@@ -42,7 +42,6 @@ class Controller extends SilverStripeController
             $token = $provider->getAccessToken('authorization_code', [
                 'code' => $request->getVar('code')
             ]);
-            var_dump($token);die;
 
             $user = $provider->getResourceOwner($token);
             $accessToken = OAuthAccessToken::createFromAccessToken($providerName, $token);
@@ -51,7 +50,7 @@ class Controller extends SilverStripeController
             $accessToken->MemberID = $member->ID;
             $accessToken->write();
         } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
-             return Security::permissionFailure($this, 'Invalid access token.');
+            return Security::permissionFailure($this, 'Invalid access token.');
         } catch (TokenlessUserExistsException $e) {
             return Security::permissionFailure($this, $e->getMessage());
         }

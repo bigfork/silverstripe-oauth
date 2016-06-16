@@ -1,7 +1,6 @@
 <?php
 
 use League\OAuth2\Client\Token\AccessToken;
-
 use Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory;
 
 class OAuthAccessToken extends DataObject
