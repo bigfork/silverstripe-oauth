@@ -42,11 +42,12 @@ class Controller extends SilverStripeController
             $token = $provider->getAccessToken('authorization_code', [
                 'code' => $request->getVar('code')
             ]);
+            var_dump($token);die;
 
             $user = $provider->getResourceOwner($token);
             $accessToken = OAuthAccessToken::createFromAccessToken($providerName, $token);
 
-            $member = $this->memberFromResourceOwner($user);
+            $member = $this->memberFromResourceOwner($user, $providerName);
             $accessToken->MemberID = $member->ID;
             $accessToken->write();
         } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
@@ -67,14 +68,13 @@ class Controller extends SilverStripeController
     /**
      * Find or create a member from the given resource owner ("user")
      *
-     * @todo Abstract somewhere else?
-     * @todo Proper mapping of fields
+     * @todo Implement $overwriteExisting
      * @todo $overwriteExisting could use priorities? I.e. Facebook data > Google data
      * @param ResourceOwnerInterface $user
      * @return Member
      * @throws TokenlessUserExistsException
      */
-    protected function memberFromResourceOwner(ResourceOwnerInterface $user)
+    protected function memberFromResourceOwner(ResourceOwnerInterface $user, $providerName)
     {
         $member = Member::get()->filter([
             'Email' => $user->getEmail()
@@ -90,12 +90,12 @@ class Controller extends SilverStripeController
             );
         }
 
-        // @todo
-        $overwriteExisting = false;
+        $overwriteExisting = false; // @todo
         if ($overwriteExisting || !$member->isInDB()) {
-            $member->Email = $user->getEmail();
-            $member->FirstName = $user->getFirstName();
-            $member->Surname = $user->getLastName();
+            $mapper = Injector::inst()->get('Bigfork\SilverStripeOAuth\Client\Factory\MemberMapperFactory')
+                ->createMapper($providerName);
+
+            $member = $mapper->map($member, $user);
             $member->write();
         }
 
