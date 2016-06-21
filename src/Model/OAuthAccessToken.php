@@ -24,6 +24,13 @@ class OAuthAccessToken extends DataObject
     ];
 
     /**
+     * @var array
+     */
+    private static $many_many = [
+        'Scopes' => 'OAuthScope'
+    ];
+
+    /**
      * Find a token matching the given parameters, or create one if it doesn't exist
      *
      * @param string $provider
@@ -86,8 +93,30 @@ class OAuthAccessToken extends DataObject
      */
     public function getTokenProvider()
     {
-        // @todo Use ProviderFactory::class in SS4 - it currently breaks SS_ConfigStaticManifest_Parser
         return Injector::inst()->get('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory')
             ->createProvider($this->Provider);
+    }
+
+    /**
+     * Check whether this token's permissions include the given scope
+     * 
+     * @param string $scope
+     * @return boolean
+     */
+    public function includesScope($scope)
+    {
+        return $this->includesScopes([$scope]);
+    }
+
+    /**
+     * Check whether this token's permissions include all of the given scopes
+     * NOTE: this is an *and*, not an *or*
+     * 
+     * @param array $scopes
+     * @return boolean
+     */
+    public function includesScopes(array $scopes)
+    {
+        return ($this->Scopes()->filter('Name', $scopes)->count() === count($scopes));
     }
 }

@@ -6,7 +6,6 @@
         "league/oauth2-client": "^1.4"
 	},
 	"autoload": {
-		"psr-4": {"Bigfork\\SilverStripeOAuth\\Client\\": "src/"},
-		"files": ["src/Model/OAuthAccessToken.php"]
+		"psr-4": {"Bigfork\\SilverStripeOAuth\\Client\\": "src/"}
 	}
 }

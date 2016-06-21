@@ -4,24 +4,36 @@ namespace Bigfork\SilverStripeOAuth\Client\Factory;
 
 use Bigfork\SilverStripeOAuth\Client\Authenticator\Authenticator;
 use Config;
+use Controller;
+use Director;
 use Injector;
 
 class ProviderFactory
 {
     /**
+     * @var array
+     */
+    private static $providers = [];
+
+    /**
      * @todo Support for collaborators?
      * @param string $name
+     * @param string $redirectUri
      * @return League\OAuth2\Client\Provider\AbstractProvider
      */
-    public function createProvider($name)
+    public function createProvider($name, $redirectUri = '')
     {
-        // @todo Use Authenticator::class in SS4 - it currently breaks SS_ConfigStaticManifest_Parser
-        $providers = Config::inst()->get('Bigfork\SilverStripeOAuth\Client\Authenticator\Authenticator', 'providers');
+        $providers = Config::inst()->get(__CLASS__, 'providers');
         $config = $providers[$name];
 
         $constructorOptions = isset($config['constructor_options']) ? $config['constructor_options'] : [];
 
-        $data = ['redirectUri' => 'http://oauth.dev/oauth/authenticate/'];
+        if (!$redirectUri) {
+            $controller = Injector::inst()->get('Bigfork\SilverStripeOAuth\Client\Control\Controller');
+            $redirectUri = Controller::join_links(Director::absoluteBaseURL(), $controller->Link(), 'callback/');
+        }
+
+        $data = ['redirectUri' => $redirectUri];
         $provider = Injector::inst()->createWithArgs(
             $config['class'],
             [array_merge($constructorOptions, $data)]
