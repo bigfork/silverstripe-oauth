@@ -13,32 +13,38 @@ class ProviderFactory
     /**
      * @var array
      */
-    private static $providers = [];
+    protected $providers = [];
 
     /**
-     * @todo Support for collaborators?
+     * @param array
+     * @return self
+     */
+    public function setProviders(array $providers)
+    {
+        $this->providers = $providers;
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getProviders()
+    {
+        return $this->providers;
+    }
+
+    /**
      * @param string $name
-     * @param string $redirectUri
      * @return League\OAuth2\Client\Provider\AbstractProvider
      */
-    public function createProvider($name, $redirectUri = '')
+    public function getProvider($name)
     {
-        $providers = Config::inst()->get(__CLASS__, 'providers');
-        $config = $providers[$name];
+        $providers = $this->getProviders();
 
-        $constructorOptions = isset($config['constructor_options']) ? $config['constructor_options'] : [];
-
-        if (!$redirectUri) {
-            $controller = Injector::inst()->get('Bigfork\SilverStripeOAuth\Client\Control\Controller');
-            $redirectUri = Controller::join_links(Director::absoluteBaseURL(), $controller->Link(), 'callback/');
+        if (!isset($providers[$name])) {
+            throw new Exception("Provider {$name} has not been configured");
         }
 
-        $data = ['redirectUri' => $redirectUri];
-        $provider = Injector::inst()->createWithArgs(
-            $config['class'],
-            [array_merge($constructorOptions, $data)]
-        );
-
-        return $provider;
+        return $providers[$name];
     }
 }

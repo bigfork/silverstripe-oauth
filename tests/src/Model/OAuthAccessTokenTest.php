@@ -113,10 +113,10 @@ class OAuthAccessTokenTest extends SapphireTest
             ->getMock();
 
         $mockFactory = $this->getMockBuilder('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory')
-            ->setMethods(['createProvider'])
+            ->setMethods(['getProvider'])
             ->getMock();
         $mockFactory->expects($this->once())
-            ->method('createProvider')
+            ->method('getProvider')
             ->with('ProviderName')
             ->will($this->returnValue($mockProvider));
 

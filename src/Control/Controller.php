@@ -2,7 +2,6 @@
 
 namespace Bigfork\SilverStripeOAuth\Client\Control;
 
-use Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory;
 use Controller as SilverStripeController;
 use Director;
 use Injector;
@@ -31,6 +30,14 @@ class Controller extends SilverStripeController
     }
 
     /**
+     * @return string
+     */
+    public function AbsoluteLink()
+    {
+        return self::join_links(Director::absoluteBaseURL(), $this->Link());
+    }
+
+    /**
      * This takes parameters like the provider, scopes and callback url, builds an authentication
      * url with the provider's site and then redirects to it
      * 
@@ -49,11 +56,10 @@ class Controller extends SilverStripeController
             return $this->httpError(404);
         }
 
-        $provider = Injector::inst()->get('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory')
-            ->createProvider($providerName, $redirectUri);
+        $provider = Injector::inst()->get('ProviderFactory')->getProvider($providerName);
 
         $scope = empty($scope) ? $provider->getDefaultScopes() : $scope;
-        $url = $provider->getAuthorizationUrl(['scope' => $scope]);
+        $url = $provider->getAuthorizationUrl(['scope' => $scope, 'redirectUri' => $redirectUri]);
 
         // Copied from \Controler::redirectBack()
         if ($request->requestVar('BackURL')) {
@@ -90,8 +96,8 @@ class Controller extends SilverStripeController
 
         $providerName = Session::get('oauth2.provider');
         $redirectUri = Controller::join_links(Director::absoluteBaseURL(), $this->owner->Link(), 'callback/');
-        $provider = Injector::inst()->get('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory')
-            ->createProvider($providerName, $redirectUri);
+        $provider = Injector::inst()->get('ProviderFactory')
+            ->getProvider($providerName, $redirectUri);
         
         try {
             $token = $provider->getAccessToken('authorization_code', [
