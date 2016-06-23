@@ -2,16 +2,16 @@
 
 SilverStripe OAuth2 authentication, based on the PHP League's [OAuth2 client](http://oauth2-client.thephpleague.com/).
 
-## IMPORTANT
+## \*\* IMPORTANT \*\*
 
-Please note that this module is still in development and should not be used in a production environment. It has not been fully tested, and may undergo significant changes before a stable release.
+Please note that this module is still in early development and should **not** be used in a production environment. It has not been fully tested, and may undergo significant changes before a stable release.
 
 ### What this module does
 This module includes the base functionality for fetching access tokens and associating them with members. It provides methods for creating requests to OAuth providers, fetching access tokens with varyious scopes/permissions, and storing them in the database.
 
 ### What this module doesn’t do
 
-This module does not provide “Log in with &lt;provider&gt;” buttons, “Fetch contacts from &lt;provider&gt;” buttons, or any other functionality for actually interacting with providers - it only fetches and stores tokens that will allow you to do that. It’s up to you to install the appropriate ppackages for third-party providers, and to implement functionality that makes use of the access tokens to fetch data from those providers.
+This module does not provide “Log in with &lt;provider&gt;” buttons, “Fetch contacts from &lt;provider&gt;” buttons, or any other functionality for actually interacting with providers - it only fetches and stores tokens that will allow you to do that. It’s up to you to install the appropriate packages for third-party providers, and to implement functionality that makes use of the access tokens to fetch data from those providers.
 
 If you’re looking for “Log in with &lt;provider&gt;” functionality, take a look at the add-on for this module: [SilverStripe OAuth Login](https://github.com/bigfork/silverstripe-oauth2-login).
 
