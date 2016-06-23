@@ -15,11 +15,10 @@ class HelperTest extends SapphireTest
         $controller = new HelperTest_Controller;
         Injector::inst()->registerService($controller, 'Bigfork\SilverStripeOAuth\Client\Control\Controller');
 
-        $url = Helper::buildAuthorisationUrl('ProviderName', ['test_scope'], 'http://mysite.com/callback');
+        $url = Helper::buildAuthorisationUrl('ProviderName', ['test_scope']);
 
         $expected = Director::absoluteBaseURL() . 'helpertest/authenticate/';
         $expected .= '?provider=ProviderName&scope%5B0%5D=test_scope';
-        $expected .= '&redirectUri=' . urlencode('http://mysite.com/callback');
 
         $this->assertEquals($expected, $url);
     }

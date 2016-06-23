@@ -21,22 +21,26 @@ This module must be installed with composer. Run `composer require bigfork/silve
 
 ## Configuration
 
-Providers are configured using SilverStripe’s YAML configuration, mapping an “internal” name (passed around in URLs and stored in the database) to a PHP class that’s an instance of the PHP League’s `League\OAuth2\Client\Provider\AbstractProvider` class.
-
-Each provider can have a `constructor_options` array that will be passed to the constructor for the given provider class.
+Providers are registered as `Injector` services using SilverStripe’s YAML configuration. This allows you to specify an “internal” name (passed around in URLs and stored in the database), a PHP class for the provider (that extends `League\OAuth2\Client\Provider\AbstractProvider`), and constructor parameters & class properties.
 
 For example, to setup Facebook as a provider, first install the [Facebook OAuth2 package](https://github.com/thephpleague/oauth2-facebook), and then add the following to your YAML config:
 
 ```yml
-Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory:
-  providers:
-    'Facebook': # "Internal" name
-      class: 'League\OAuth2\Client\Provider\Facebook' # PHP class name
-      constructor_options: # Array to be passed as 1st arg to League\OAuth2\Client\Provider\Facebook::__construct()
+Injector:
+  ProviderFactory:
+    properties:
+      providers:
+        'Facebook': '%$FacebookProvider'
+  FacebookProvider:
+    class: 'League\OAuth2\Client\Provider\Facebook'
+    constructor:
+      Options:
         clientId: '12345678987654321'
         clientSecret: 'geisjgoesingoi3h1521onnro12rin'
         graphApiVersion: 'v2.6'
 ```
+
+Note that in the above example, the required `redirectUri` constructor argument is missing. This module will automatically update the service configuration to add this argument to all providers, to save having to update the URL when moving between environments/domain names. If the `redirectUri` argument is present, it will not be overridden.
 
 ---
 
@@ -70,7 +74,7 @@ The module includes one extra controller, `Bigfork\SilverStripeOAuth\Client\Cont
 
 ### Helper
 
-A simple class to help build an authentication request URL to create an access token.
+A simple class to help build an authentication request URL to create an access token. Also responsible for ensuring the `redirectUri` option is set in each provider’s service configuration.
 
 ---
 
@@ -124,7 +128,5 @@ if ($facebookToken->isExpired()) {
 ## Todo
 
 - Unit tests!
-- Investigate swapping `class` and `constructor_options` to instead be a service registered via `Injector`. Currently this is limited by the fact that we need to override the constructor arguments to add a `redirectUri` key to the first argument to `League\OAuth2\Client\Provider\AbstractProvider::__construct()`
-- Add in support for the `$collaborators` argument for `League\OAuth2\Client\Provider\AbstractProvider::__construct()`. This may depend on the outcome of the above item
 - Make the default behaviour of only allowing one access token per provider on each member optional, or just remove it
-- Better passing-around of redirect Uris, it's currently a bit messy
+- Allow controller extensions to better influence request/response flow?

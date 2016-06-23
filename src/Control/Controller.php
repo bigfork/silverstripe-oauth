@@ -10,6 +10,7 @@ use OAuthAccessToken;
 use OAuthScope;
 use Session;
 use SS_HTTPRequest;
+use SS_HTTPResponse;
 
 class Controller extends SilverStripeController
 {
@@ -49,7 +50,6 @@ class Controller extends SilverStripeController
     {
         $providerName = $request->getVar('provider');
         $scope = $request->getVar('scope');
-        $redirectUri = $request->getVar('redirectUri');
 
         // Missing or invalid data means we can't proceed
         if (!$providerName || !is_array($scope)) {
@@ -59,7 +59,7 @@ class Controller extends SilverStripeController
         $provider = Injector::inst()->get('ProviderFactory')->getProvider($providerName);
 
         $scope = empty($scope) ? $provider->getDefaultScopes() : $scope;
-        $url = $provider->getAuthorizationUrl(['scope' => $scope, 'redirectUri' => $redirectUri]);
+        $url = $provider->getAuthorizationUrl(['scope' => $scope]);
 
         // Copied from \Controler::redirectBack()
         if ($request->requestVar('BackURL')) {
@@ -95,14 +95,26 @@ class Controller extends SilverStripeController
         }
 
         $providerName = Session::get('oauth2.provider');
-        $redirectUri = Controller::join_links(Director::absoluteBaseURL(), $this->owner->Link(), 'callback/');
-        $provider = Injector::inst()->get('ProviderFactory')
-            ->getProvider($providerName, $redirectUri);
+        $provider = Injector::inst()->get('ProviderFactory')->getProvider($providerName);
         
         try {
+            $results = $this->extend('beforeGetAccessToken', $provider, $providerName, $request);
+            foreach ($results as $result) {
+                if ($result instanceof SS_HTTPResponse) {
+                    return $result;
+                }
+            }
+
             $token = $provider->getAccessToken('authorization_code', [
                 'code' => $request->getVar('code')
             ]);
+
+            $results = $this->extend('afterGetAccessToken', $provider, $token, $providerName, $request);
+            foreach ($results as $result) {
+                if ($result instanceof SS_HTTPResponse) {
+                    return $result;
+                }
+            }
 
             $member = Member::currentUser();
             $existingToken = $member->AccessTokens()->filter(['Provider' => $providerName])->first();

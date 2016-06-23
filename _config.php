@@ -1,3 +1,3 @@
 <?php
 
-Bigfork\SilverStripeOAuth\Client\Helper\ConfigHelper::addRedirectUriToConfigs();
+Bigfork\SilverStripeOAuth\Client\Helper\Helper::addRedirectUriToConfigs();
