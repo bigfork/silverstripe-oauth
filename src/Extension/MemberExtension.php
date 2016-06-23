@@ -18,4 +18,18 @@ class MemberExtension extends \Extension
     {
         $this->owner->AccessTokens()->removeAll();
     }
+
+    /**
+     * Remove all access tokens from the given provider
+     *
+     * @param string $provider
+     */
+    public function clearTokensFromProvider($provider)
+    {
+        $existingTokens = $this->owner->AccessTokens()->filter(['Provider' => $provider]);
+
+        if ($existingTokens->count()) {
+            $existingTokens->removeAll();
+        }
+    }
 }

@@ -7,6 +7,7 @@ use Config;
 use Controller;
 use Director;
 use Injector;
+use InvalidArgumentException;
 
 class ProviderFactory
 {
@@ -42,7 +43,7 @@ class ProviderFactory
         $providers = $this->getProviders();
 
         if (!isset($providers[$name])) {
-            throw new Exception("Provider {$name} has not been configured");
+            throw new InvalidArgumentException("Provider {$name} has not been configured");
         }
 
         return $providers[$name];
