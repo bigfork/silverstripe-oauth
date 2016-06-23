@@ -127,6 +127,6 @@ if ($facebookToken->isExpired()) {
 
 ## Todo
 
-- Unit tests!
+- Tidy Controller - just look at the tests to see why
 - Make the default behaviour of only allowing one access token per provider on each member optional, or just remove it
 - Allow controller extensions to better influence request/response flow?

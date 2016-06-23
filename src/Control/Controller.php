@@ -66,7 +66,7 @@ class Controller extends SilverStripeController
         }
 
         if (!$backUrl || !Director::is_site_url($backUrl)) {
-            $backUrl = Director::baseURL();
+            $backUrl = Director::absoluteBaseURL();
         }
 
         return $backUrl;
@@ -81,7 +81,7 @@ class Controller extends SilverStripeController
     {
         $backUrl = $this->getSession()->inst_get('oauth2.backurl');
         if (!$backUrl || !Director::is_site_url($backUrl)) {
-            $backUrl = Director::baseURL();
+            $backUrl = Director::absoluteBaseURL();
         }
 
         return $backUrl;
