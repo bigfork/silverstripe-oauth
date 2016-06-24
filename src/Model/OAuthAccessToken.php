@@ -1,7 +1,7 @@
 <?php
 
-use League\OAuth2\Client\Token\AccessToken;
 use Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory;
+use League\OAuth2\Client\Token\AccessToken;
 
 class OAuthAccessToken extends DataObject
 {
@@ -29,6 +29,39 @@ class OAuthAccessToken extends DataObject
     private static $many_many = [
         'Scopes' => 'OAuthScope'
     ];
+
+    /**
+     * @var array
+     */
+    private static $summary_fields = [
+        'Provider' => 'Provider',
+        'Expires' => 'Expires'
+    ];
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getCMSFields()
+    {
+        $fields = parent::getCMSFields();
+
+        $fields->removeByName('MemberID');
+        $fields->removeByName('Scopes');
+
+        $fields = $fields->transform(new ReadonlyTransformation());
+
+        $fields->addFieldToTab(
+            'Root.Main',
+            GridField::create(
+                'Scopes',
+                'Scopes',
+                $this->Scopes(),
+                new GridFieldConfig_Base()
+            )
+        );
+
+        return $fields;
+    }
 
     /**
      * Find a token matching the given parameters, or create one if it doesn't exist

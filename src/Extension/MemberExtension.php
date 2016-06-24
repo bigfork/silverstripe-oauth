@@ -2,6 +2,8 @@
 
 namespace Bigfork\SilverStripeOAuth\Client\Extension;
 
+use FieldList;
+
 class MemberExtension extends \Extension
 {
     /**
@@ -10,6 +12,18 @@ class MemberExtension extends \Extension
     private static $has_many = [
         'AccessTokens' => 'OAuthAccessToken'
     ];
+
+
+    /**
+     * {@inheritdoc}
+     */
+    public function updateCMSFields(FieldList $fields)
+    {
+        $tokensField = $fields->dataFieldByName('AccessTokens');
+        if ($tokensField) {
+            $tokensField->getConfig()->removeComponentsByType('GridFieldDeleteAction');
+        }
+    }
 
     /**
      * Remove this member's access tokens on delete
