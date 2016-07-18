@@ -3,9 +3,9 @@
 namespace Bigfork\SilverStripeOAuth\Client\Test\Factory;
 
 use Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory;
-use SapphireTest;
+use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
 
-class ProviderFactoryTest extends SapphireTest
+class ProviderFactoryTest extends TestCase
 {
     public function testSetAndGetProviders()
     {
@@ -20,9 +20,7 @@ class ProviderFactoryTest extends SapphireTest
 
     public function testGetProvider()
     {
-        $mock = $this->getMockBuilder('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory')
-            ->setMethods(['getProviders'])
-            ->getMock();
+        $mock = $this->getMock('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory', ['getProviders']);
         $mock->expects($this->once())
             ->method('getProviders')
             ->will($this->returnValue(['ProviderName' => 'Result']));
@@ -35,9 +33,7 @@ class ProviderFactoryTest extends SapphireTest
      */
     public function testGetProviderNotSet()
     {
-        $mock = $this->getMockBuilder('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory')
-            ->setMethods(['getProviders'])
-            ->getMock();
+        $mock = $this->getMock('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory', ['getProviders']);
         $mock->expects($this->once())
             ->method('getProviders')
             ->will($this->returnValue(['ProviderName' => 'Result']));

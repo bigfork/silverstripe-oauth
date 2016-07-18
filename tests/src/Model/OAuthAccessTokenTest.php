@@ -2,13 +2,13 @@
 
 namespace Bigfork\SilverStripeOAuth\Client\Test\Model;
 
+use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
 use Injector;
 use League\OAuth2\Client\Provider\GenericProvider;
 use League\OAuth2\Client\Token\AccessToken;
 use OAuthAccessToken;
-use SapphireTest;
 
-class OAuthAccessTokenTest extends SapphireTest
+class OAuthAccessTokenTest extends TestCase
 {
     protected static $fixture_file = 'OAuthAccessTokenTest.yml';
 
@@ -33,7 +33,7 @@ class OAuthAccessTokenTest extends SapphireTest
         // Test that the expiry date is translated to datetime field correctly on write
         $token->write();
         $token = OAuthAccessToken::get()->filter('Provider', 'provider_name')->first();
-        $this->assertEquals(date('Y-m-d h:i:s'), $token->Expires, 'Expiry date was stored incorrectly');
+        $this->assertEquals(date('Y-m-d H:i:s'), $token->Expires, 'Expiry date was stored incorrectly');
 
         // Test expires_in instead of expires
         $oneDay = 60 * 60 * 24;
@@ -64,10 +64,10 @@ class OAuthAccessTokenTest extends SapphireTest
         $refreshToken = '123456789';
         $timeStamp = time();
 
-        $mockAccessToken = $this->getMockBuilder('League\OAuth2\Client\Token\AccessToken')
-            ->setMethods(['getToken', 'getRefreshToken', 'getExpires', 'getResourceOwnerId'])
-            ->disableOriginalConstructor()
-            ->getMock();
+        $mockAccessToken = $this->getConstructorlessMock(
+            'League\OAuth2\Client\Token\AccessToken',
+            ['getToken', 'getRefreshToken', 'getExpires', 'getResourceOwnerId']
+        );
         $mockAccessToken->expects($this->once())
             ->method('getToken')
             ->will($this->returnValue('987'));
@@ -81,18 +81,16 @@ class OAuthAccessTokenTest extends SapphireTest
             ->method('getResourceOwnerId')
             ->will($this->returnValue('abc'));
 
-        $mockProvider = $this->getMockBuilder('League\OAuth2\Client\Provider\GenericProvider')
-            ->setMethods(['getAccessToken'])
-            ->disableOriginalConstructor()
-            ->getMock();
+        $mockProvider = $this->getConstructorlessMock(
+            'League\OAuth2\Client\Provider\GenericProvider',
+            ['getAccessToken']
+        );
         $mockProvider->expects($this->once())
             ->method('getAccessToken')
             ->with('refresh_token', ['refresh_token' => $refreshToken])
             ->will($this->returnValue($mockAccessToken));
 
-        $mockToken = $this->getMockBuilder('OAuthAccessToken')
-            ->setMethods(['getTokenProvider'])
-            ->getMock();
+        $mockToken = $this->getMock('OAuthAccessToken', ['getTokenProvider']);
         $mockToken->expects($this->once())
             ->method('getTokenProvider')
             ->will($this->returnValue($mockProvider));
@@ -108,13 +106,9 @@ class OAuthAccessTokenTest extends SapphireTest
 
     public function testGetTokenProvider()
     {
-        $mockProvider = $this->getMockBuilder('League\OAuth2\Client\Provider\GenericProvider')
-            ->disableOriginalConstructor()
-            ->getMock();
+        $mockProvider = $this->getConstructorlessMock('League\OAuth2\Client\Provider\GenericProvider');
 
-        $mockFactory = $this->getMockBuilder('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory')
-            ->setMethods(['getProvider'])
-            ->getMock();
+        $mockFactory = $this->getMock('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory', ['getProvider']);
         $mockFactory->expects($this->once())
             ->method('getProvider')
             ->with('ProviderName')
@@ -129,9 +123,7 @@ class OAuthAccessTokenTest extends SapphireTest
 
     public function testIncludesScope()
     {
-        $mockToken = $this->getMockBuilder('OAuthAccessToken')
-            ->setMethods(['includesScopes'])
-            ->getMock();
+        $mockToken = $this->getMock('OAuthAccessToken', ['includesScopes']);
         $mockToken->expects($this->once())
             ->method('includesScopes')
             ->with(['test_scope'])

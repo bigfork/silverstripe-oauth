@@ -3,16 +3,16 @@
 namespace Bigfork\SilverStripeOAuth\Client\Test\Control;
 
 use Bigfork\SilverStripeOAuth\Client\Control\Controller;
+use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
 use Director;
 use Injector;
 use Member;
 use ReflectionMethod;
-use SapphireTest;
 use SS_HTTPRequest;
 use SS_HTTPResponse;
 use SS_HTTPResponse_Exception;
 
-class ControllerTest extends SapphireTest
+class ControllerTest extends TestCase
 {
     public function testSetGetMember()
     {
@@ -35,57 +35,55 @@ class ControllerTest extends SapphireTest
         );
         $reflectionMethod->setAccessible(true);
 
-        $mockBuilder = $this->getMockBuilder('SS_HTTPRequest')->disableOriginalConstructor();
-
-        $mock = $mockBuilder->setMethods(['requestVar'])->getMock();
-        $mock->expects($this->exactly(2))
+        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['requestVar']);
+        $mockRequest->expects($this->exactly(2))
             ->method('requestVar')
             ->with('BackURL')
             ->will($this->returnValue($back));
-        $this->assertEquals($back, $reflectionMethod->invoke($controller, $mock));
+        $this->assertEquals($back, $reflectionMethod->invoke($controller, $mockRequest));
 
-        $mock = $mockBuilder->setMethods(['requestVar', 'isAjax', 'getHeader'])->getMock();
-        $mock->expects($this->at(0))
+        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['requestVar', 'isAjax', 'getHeader']);
+        $mockRequest->expects($this->at(0))
             ->method('requestVar')
             ->with('BackURL')
             ->will($this->returnValue(null));
-        $mock->expects($this->at(1))
+        $mockRequest->expects($this->at(1))
             ->method('isAjax')
             ->will($this->returnValue(true));
-        $mock->expects($this->at(2))
+        $mockRequest->expects($this->at(2))
             ->method('getHeader')
             ->with('X-Backurl')
             ->will($this->returnValue($back));
-        $mock->expects($this->at(3))
+        $mockRequest->expects($this->at(3))
             ->method('getHeader')
             ->with('X-Backurl')
             ->will($this->returnValue($back));
-        $this->assertEquals($back, $reflectionMethod->invoke($controller, $mock));
+        $this->assertEquals($back, $reflectionMethod->invoke($controller, $mockRequest));
 
-        $mock = $mockBuilder->setMethods(['requestVar', 'isAjax', 'getHeader'])->getMock();
-        $mock->expects($this->at(0))
+        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['requestVar', 'isAjax', 'getHeader']);
+        $mockRequest->expects($this->at(0))
             ->method('requestVar')
             ->with('BackURL')
             ->will($this->returnValue(null));
-        $mock->expects($this->at(1))
+        $mockRequest->expects($this->at(1))
             ->method('isAjax')
             ->will($this->returnValue(false));
-        $mock->expects($this->at(2))
+        $mockRequest->expects($this->at(2))
             ->method('getHeader')
             ->with('Referer')
             ->will($this->returnValue($back));
-        $mock->expects($this->at(3))
+        $mockRequest->expects($this->at(3))
             ->method('getHeader')
             ->with('Referer')
             ->will($this->returnValue($back));
-        $this->assertEquals($back, $reflectionMethod->invoke($controller, $mock));
+        $this->assertEquals($back, $reflectionMethod->invoke($controller, $mockRequest));
 
-        $mock = $mockBuilder->setMethods(['requestVar'])->getMock();
-        $mock->expects($this->exactly(2))
+        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['requestVar']);
+        $mockRequest->expects($this->exactly(2))
             ->method('requestVar')
             ->with('BackURL')
             ->will($this->returnValue('http://1337h4x00r.com/geniune-oauth-url/i-promise'));
-        $this->assertEquals(Director::absoluteBaseURL(), $reflectionMethod->invoke($controller, $mock));
+        $this->assertEquals(Director::absoluteBaseURL(), $reflectionMethod->invoke($controller, $mockRequest));
     }
 
     public function testGetReturnUrl()
@@ -98,10 +96,7 @@ class ControllerTest extends SapphireTest
         );
         $reflectionMethod->setAccessible(true);
 
-        $mockSession = $this->getMockBuilder('Session')
-            ->disableOriginalConstructor()
-            ->setMethods(['inst_get'])
-            ->getMock();
+        $mockSession = $this->getConstructorlessMock('Session', ['inst_get']);
         $mockSession->expects($this->once())
             ->method('inst_get')
             ->with('oauth2.backurl')
@@ -110,10 +105,7 @@ class ControllerTest extends SapphireTest
         $controller->setSession($mockSession);
         $this->assertEquals($back, $reflectionMethod->invoke($controller));
 
-        $mockSession = $this->getMockBuilder('Session')
-            ->disableOriginalConstructor()
-            ->setMethods(['inst_get'])
-            ->getMock();
+        $mockSession = $this->getConstructorlessMock('Session', ['inst_get']);
         $mockSession->expects($this->once())
             ->method('inst_get')
             ->with('oauth2.backurl')
@@ -128,10 +120,7 @@ class ControllerTest extends SapphireTest
         // Store original
         $injector = Injector::inst();
 
-        $mockRequest = $this->getMockBuilder('SS_HTTPRequest')
-            ->disableOriginalConstructor()
-            ->setMethods(['getVar'])
-            ->getMock();
+        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['getVar']);
         $mockRequest->expects($this->at(0))
             ->method('getVar')
             ->with('provider')
@@ -141,10 +130,10 @@ class ControllerTest extends SapphireTest
             ->with('scope')
             ->will($this->returnValue([])); // Leave scopes empty to asset that getDefaultScopes() is called
 
-        $mockProvider = $this->getMockBuilder('League\OAuth2\Client\Provider\GenericProvider')
-            ->disableOriginalConstructor()
-            ->setMethods(['getDefaultScopes', 'getAuthorizationUrl', 'getState'])
-            ->getMock();
+        $mockProvider = $this->getConstructorlessMock(
+            'League\OAuth2\Client\Provider\GenericProvider',
+            ['getDefaultScopes', 'getAuthorizationUrl', 'getState']
+        );
         $mockProvider->expects($this->at(0))
             ->method('getDefaultScopes')
             ->will($this->returnValue(['default_scope']));
@@ -156,18 +145,16 @@ class ControllerTest extends SapphireTest
             ->method('getState')
             ->will($this->returnValue('mockstate'));
 
-        $mockProviderFactory = $this->getMockBuilder('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory')
-            ->setMethods(['getProvider'])
-            ->getMock();
+        $mockProviderFactory = $this->getMock(
+            'Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory',
+            ['getProvider']
+        );
         $mockProviderFactory->expects($this->once())
             ->method('getProvider')
             ->with('ProviderName')
             ->will($this->returnValue($mockProvider));
 
-        $mockSession = $this->getMockBuilder('Session')
-            ->disableOriginalConstructor()
-            ->setMethods(['inst_set'])
-            ->getMock();
+        $mockSession = $this->getConstructorlessMock('Session', ['inst_set']);
         $mockSession->expects($this->once())
             ->method('inst_set')
             ->with('oauth2', [
@@ -177,17 +164,16 @@ class ControllerTest extends SapphireTest
                 'backurl' => 'http://mysite.com/return'
             ]);
 
-        $mockInjector = $this->getMockBuilder('Injector')
-            ->setMethods(['get'])
-            ->getMock();
+        $mockInjector = $this->getMock('Injector', ['get']);
         $mockInjector->expects($this->once())
             ->method('get')
             ->with('ProviderFactory')
             ->will($this->returnValue($mockProviderFactory));
 
-        $mockController = $this->getMockBuilder('Bigfork\SilverStripeOAuth\Client\Control\Controller')
-            ->setMethods(['findBackUrl', 'redirect'])
-            ->getMock();
+        $mockController = $this->getMock(
+            'Bigfork\SilverStripeOAuth\Client\Control\Controller',
+            ['findBackUrl', 'redirect']
+        );
         $mockController->expects($this->at(0))
             ->method('findBackUrl')
             ->with($mockRequest)
@@ -208,10 +194,7 @@ class ControllerTest extends SapphireTest
 
     public function testAuthenticateMissingRequiredData()
     {
-        $mockRequest = $this->getMockBuilder('SS_HTTPRequest')
-            ->disableOriginalConstructor()
-            ->setMethods(['getVar'])
-            ->getMock();
+        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['getVar']);
         $mockRequest->expects($this->at(0))
             ->method('getVar')
             ->with('provider')
@@ -235,64 +218,53 @@ class ControllerTest extends SapphireTest
         // Store original
         $injector = Injector::inst();
 
-        $mockRequest = $this->getMockBuilder('SS_HTTPRequest')
-            ->disableOriginalConstructor()
-            ->setMethods(['getVar'])
-            ->getMock();
+        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['getVar']);
         $mockRequest->expects($this->once())
             ->method('getVar')
             ->with('code')
             ->will($this->returnValue('12345'));
 
-        $mockAccessToken = $this->getMockBuilder('League\OAuth2\Client\Token\AccessToken')
-            ->disableOriginalConstructor()
-            ->getMock();
+        $mockAccessToken = $this->getConstructorlessMock('League\OAuth2\Client\Token\AccessToken');
 
-        $mockProvider = $this->getMockBuilder('League\OAuth2\Client\Provider\GenericProvider')
-            ->disableOriginalConstructor()
-            ->setMethods(['getAccessToken'])
-            ->getMock();
+        $mockProvider = $this->getConstructorlessMock(
+            'League\OAuth2\Client\Provider\GenericProvider',
+            ['getAccessToken']
+        );
         $mockProvider->expects($this->once())
             ->method('getAccessToken')
             ->with('authorization_code', ['code' => '12345'])
             ->will($this->returnValue($mockAccessToken));
 
-        $mockProviderFactory = $this->getMockBuilder('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory')
-            ->setMethods(['getProvider'])
-            ->getMock();
+        $mockProviderFactory = $this->getMock(
+            'Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory',
+            ['getProvider']
+        );
         $mockProviderFactory->expects($this->once())
             ->method('getProvider')
             ->with('ProviderName')
             ->will($this->returnValue($mockProvider));
 
-        $mockInjector = $this->getMockBuilder('Injector')
-            ->setMethods(['get'])
-            ->getMock();
+        $mockInjector = $this->getMock('Injector', ['get']);
         $mockInjector->expects($this->once())
             ->method('get')
             ->with('ProviderFactory')
             ->will($this->returnValue($mockProviderFactory));
 
-        $mockSession = $this->getMockBuilder('Session')
-            ->disableOriginalConstructor()
-            ->setMethods(['inst_get'])
-            ->getMock();
+        $mockSession = $this->getConstructorlessMock('Session', ['inst_get']);
         $mockSession->expects($this->once())
             ->method('inst_get')
             ->with('oauth2.provider')
             ->will($this->returnValue('ProviderName'));
 
-        $mockMember = $this->getMockBuilder('Member')
-            ->setMethods(['clearTokensFromProvider'])
-            ->getMock();
+        $mockMember = $this->getMock('Member', ['clearTokensFromProvider']);
         $mockMember->expects($this->once())
             ->method('clearTokensFromProvider')
             ->with('ProviderName');
 
-        $mockController = $this->getMockBuilder('Bigfork\SilverStripeOAuth\Client\Control\Controller')
-            ->setMethods(['validateState', 'getSession', 'extend', 'getMember',
-                'storeAccessToken', 'getReturnUrl', 'redirect'])
-            ->getMock();
+        $mockController = $this->getMock(
+            'Bigfork\SilverStripeOAuth\Client\Control\Controller',
+            ['validateState', 'getSession', 'extend', 'getMember', 'storeAccessToken', 'getReturnUrl', 'redirect']
+        );
         $mockController->expects($this->at(0))
             ->method('validateState')
             ->with($mockRequest)
@@ -329,13 +301,9 @@ class ControllerTest extends SapphireTest
 
     public function testCallbackInvalidState()
     {
-        $mockRequest = $this->getMockBuilder('SS_HTTPRequest')
-            ->disableOriginalConstructor()
-            ->getMock();
+        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest');
 
-        $mockController = $this->getMockBuilder('Bigfork\SilverStripeOAuth\Client\Control\Controller')
-            ->setMethods(['validateState'])
-            ->getMock();
+        $mockController = $this->getMock('Bigfork\SilverStripeOAuth\Client\Control\Controller', ['validateState']);
         $mockController->expects($this->once())
             ->method('validateState')
             ->with($mockRequest)

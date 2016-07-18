@@ -3,14 +3,14 @@
 namespace Bigfork\SilverStripeOAuth\Client\Test\Helper;
 
 use Bigfork\SilverStripeOAuth\Client\Helper\Helper;
+use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
 use Config;
 use Controller;
 use Director;
 use Injector;
 use ReflectionMethod;
-use SapphireTest;
 
-class HelperTest extends SapphireTest
+class HelperTest extends TestCase
 {
     public function testBuildAuthorisationUrl()
     {
@@ -37,9 +37,7 @@ class HelperTest extends SapphireTest
         $originalConfig = ['constructor' => ['Options' => ['apiKey' => '123']]];
         $expectedConfig = ['constructor' => ['Options' => ['apiKey' => '123', 'redirectUri' => $uri]]];
 
-        $mockConfig = $this->getMockBuilder('Config')
-            ->setMethods(['get', 'update'])
-            ->getMock();
+        $mockConfig = $this->getMock('Config', ['get', 'update']);
         $mockConfig->expects($this->at(0))
             ->method('get')
             ->with('Injector', 'ProviderFactory')
@@ -59,9 +57,7 @@ class HelperTest extends SapphireTest
             ->with('Injector', 'ProviderService')
             ->will($this->returnValue($expectedConfig));
 
-        $mockInjector = $this->getMockBuilder('Injector')
-            ->setMethods(['load'])
-            ->getMock();
+        $mockInjector = $this->getMock('Injector', ['load']);
         $mockInjector->expects($this->once())
             ->method('load')
             ->with(['ProviderService' => $expectedConfig]);
@@ -125,9 +121,7 @@ class HelperTest extends SapphireTest
         );
         $reflectionMethod->setAccessible(true);
 
-        $mockConfig = $this->getMockBuilder('Config')
-            ->setMethods(['get'])
-            ->getMock();
+        $mockConfig = $this->getMock('Config', ['get']);
         $mockConfig->expects($this->once())
             ->method('get')
             ->with('Bigfork\SilverStripeOAuth\Client\Helper\Helper', 'default_redirect_uri')
@@ -137,9 +131,7 @@ class HelperTest extends SapphireTest
         $this->assertEquals('http://foo.bar', $reflectionMethod->invoke(null));
         Config::set_instance($config);
 
-        $mockInjector = $this->getMockBuilder('Injector')
-            ->setMethods(['get'])
-            ->getMock();
+        $mockInjector = $this->getMock('Injector', ['get']);
         $mockInjector->expects($this->once())
             ->method('get')
             ->with('Bigfork\SilverStripeOAuth\Client\Control\Controller')

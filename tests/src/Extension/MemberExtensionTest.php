@@ -3,21 +3,17 @@
 namespace Bigfork\SilverStripeOAuth\Client\Test\Extension;
 
 use Bigfork\SilverStripeOAuth\Client\Extension\MemberExtension;
-use SapphireTest;
+use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
 
-class MemberExtensionTest extends SapphireTest
+class MemberExtensionTest extends TestCase
 {
     public function testOnBeforeDelete()
     {
-        $mockDataList = $this->getMockBuilder('stdClass')
-            ->setMethods(['removeAll'])
-            ->getMock();
+        $mockDataList = $this->getMock('stdClass', ['removeAll']);
         $mockDataList->expects($this->once())
             ->method('removeAll');
 
-        $mockMember = $this->getMockBuilder('stdClass')
-            ->setMethods(['AccessTokens'])
-            ->getMock();
+        $mockMember = $this->getMock('stdClass', ['AccessTokens']);
         $mockMember->expects($this->once())
             ->method('AccessTokens')
             ->will($this->returnValue($mockDataList));
@@ -29,9 +25,7 @@ class MemberExtensionTest extends SapphireTest
 
     public function testClearTokensFromProvider()
     {
-        $mockDataList = $this->getMockBuilder('stdClass')
-            ->setMethods(['filter', 'count', 'removeAll'])
-            ->getMock();
+        $mockDataList = $this->getMock('stdClass', ['filter', 'count', 'removeAll']);
         $mockDataList->expects($this->at(0))
             ->method('filter')
             ->with(['Provider' => 'ProviderName'])
@@ -42,9 +36,7 @@ class MemberExtensionTest extends SapphireTest
         $mockDataList->expects($this->at(2))
             ->method('removeAll');
 
-        $mockMember = $this->getMockBuilder('stdClass')
-            ->setMethods(['AccessTokens'])
-            ->getMock();
+        $mockMember = $this->getMock('stdClass', ['AccessTokens']);
         $mockMember->expects($this->once())
             ->method('AccessTokens')
             ->will($this->returnValue($mockDataList));
