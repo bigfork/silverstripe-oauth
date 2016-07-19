@@ -18,7 +18,7 @@ class OAuthAccessTokenTest extends TestCase
             'access_token' => '123',
             'resource_owner_id' => '1',
             'refresh_token' => '987',
-            'expires' => time()
+            'expires' => $timestamp = time()
         ];
 
         $leagueToken = new AccessToken($tokenData);
@@ -33,7 +33,7 @@ class OAuthAccessTokenTest extends TestCase
         // Test that the expiry date is translated to datetime field correctly on write
         $token->write();
         $token = OAuthAccessToken::get()->filter('Provider', 'provider_name')->first();
-        $this->assertEquals(date('Y-m-d H:i:s'), $token->Expires, 'Expiry date was stored incorrectly');
+        $this->assertEquals(date('Y-m-d H:i:s', $timestamp, $token->Expires,'Expiry date was stored incorrectly');
 
         // Test expires_in instead of expires
         $oneDay = 60 * 60 * 24;
