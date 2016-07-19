@@ -33,7 +33,7 @@ class OAuthAccessTokenTest extends TestCase
         // Test that the expiry date is translated to datetime field correctly on write
         $token->write();
         $token = OAuthAccessToken::get()->filter('Provider', 'provider_name')->first();
-        $this->assertEquals(date('Y-m-d H:i:s', $timestamp, $token->Expires,'Expiry date was stored incorrectly');
+        $this->assertEquals(date('Y-m-d H:i:s', $timestamp), $token->Expires, 'Expiry date was stored incorrectly');
 
         // Test expires_in instead of expires
         $oneDay = 60 * 60 * 24;
