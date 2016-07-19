@@ -13,7 +13,7 @@ This module includes the base functionality for fetching access tokens and assoc
 
 This module does not provide “Log in with &lt;provider&gt;” buttons, “Fetch contacts from &lt;provider&gt;” buttons, or any other functionality for actually interacting with providers - it only fetches and stores tokens that will allow you to do that. It’s up to you to install the appropriate packages for third-party providers, and to implement functionality that makes use of the access tokens to fetch data from those providers.
 
-If you’re looking for “Log in with &lt;provider&gt;” functionality, take a look at the add-on for this module: [SilverStripe OAuth Login](https://github.com/bigfork/SilverStripe-OAuth-Login).
+If you’re looking for “Log in with &lt;provider&gt;” functionality, take a look at the add-on for this module: [SilverStripe OAuth Login](https://github.com/bigfork/silverstripe-oauth-login).
 
 ## Installation
 
