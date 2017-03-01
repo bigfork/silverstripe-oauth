@@ -4,13 +4,16 @@ namespace Bigfork\SilverStripeOAuth\Client\Control;
 
 use Controller as SilverStripeController;
 use Director;
+use Exception;
 use Injector;
+use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use League\OAuth2\Client\Token\AccessToken;
 use Member;
 use OAuthAccessToken;
 use OAuthScope;
 use SS_HTTPRequest;
 use SS_HTTPResponse;
+use SS_Log;
 
 class Controller extends SilverStripeController
 {
@@ -169,13 +172,20 @@ class Controller extends SilverStripeController
             }
 
             $member = $this->getMember();
+            if (!$member) {
+                throw new Exception('Unable to find current member.');
+            }
 
-            // Clear existing tokens for this provider - @todo
+            // Clear existing tokens for this provider
             $member->clearTokensFromProvider($providerName);
             // Store the access token in the database
             $this->storeAccessToken($member, $token, $providerName);
-        } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
+        } catch (IdentityProviderException $e) {
+            SS_Log::log('OAuth IdentityProviderException: ' . $e->getMessage(), SS_Log::ERR);
             return $this->httpError(400, 'Invalid access token.');
+        } catch (Exception $e) {
+            SS_Log::log('OAuth Exception: ' . $e->getMessage(), SS_Log::ERR);
+            return $this->httpError(400, $e->getMessage());
         }
 
         return $this->redirect($this->getReturnUrl());
