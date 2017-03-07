@@ -7,7 +7,7 @@ SilverStripe OAuth2 authentication, based on the PHP League's [OAuth2 client](ht
 Please note that this module is still in early development and should **not** be used in a production environment. It has not been fully tested, and may undergo significant changes before a stable release.
 
 ### What this module does
-This module includes the base functionality for fetching access tokens and associating them with members. It provides methods for creating requests to OAuth providers, fetching access tokens with varyious scopes/permissions, and storing them in the database.
+This module includes the base functionality for fetching access tokens. It provides methods for creating requests to OAuth providers, fetching access tokens with various scopes/permissions, and storing them in the database.
 
 ### What this module doesn’t do
 
@@ -52,7 +52,7 @@ This module adds two new models:
 
 #### `OAuthAccessToken`
 
-A single OAuth access token, belonging to a `Member`. Fields include:
+A single OAuth access token. Fields include:
 
 - `Token` - the access token itself
 - `Provider` - the provider name (“internal” name - see [Configuration](#configuration))
@@ -70,7 +70,7 @@ Has a `belongs_many_many` relation to [`OAuthAccessToken`](#OAuthAccessToken).
 
 ### Controller
 
-The module includes one extra controller, `Bigfork\SilverStripeOAuth\Client\Control\Controller`. This controller is responsible for setting up authentication requests, redirecting users to the third-party providers, and checking/handling tokens & redirections when the user returns to the site from the provider.
+The module includes one extra controller, `Bigfork\SilverStripeOAuth\Client\Control\Controller`. This controller is responsible for setting up authentication requests, redirecting users to the third-party providers, and checking/handling tokens & redirections when the user returns to the site from the provider. This module also passes the returned access token to extensions to allow them to decide how the token should be used.
 
 ### Helper
 
@@ -82,11 +82,38 @@ A simple class to help build an authentication request URL to create an access t
 
 Below are a few examples of how to perform common actions with fetching/using tokens:
 
+### Add a token to a model
+
+The module provides an `afterGetAccessToken()` extension hook, which allows extensions to decide how to handle the access token after it has been stored in the database. Throwing an exception in this method will result in the exception message being logged, and a "400 Bad Request" error page being shown. The method can also return an instance of `SS_HTTPResponse` which will be output to the browser after all remaining extensions have been run.
+
+Below is a simplified example which will store the access token against an "Account" record.
+
+```yml
+Bigfork\SilverStripeOAuth\Client\Control\Controller:
+  extensions:
+    - MyControllerExtension
+```
+
+```php
+class MyControllerExtension extends Extension
+{
+    public function afterGetAccessToken(
+        League\OAuth2\Client\Provider\AbstractProvider $provider,
+        OAuthAccessToken $token,
+        $providerName,
+        SS_HTTPRequest $request
+    ) {
+        $accountID = Session::get('Account.ID'); // Stored before redirecting to '/oauth/authenticate'
+        $token->AccountID = $accountID;
+        $token->write();
+    }
+}
+```
+
 ### Check whether a user's token has the given permission
 
 ```php
-$member = Member::currentUser();
-$facebookToken = $member->AccessTokens()->filter(['Provider', 'Facebook'])->first();
+$facebookToken = OAuthAccessToken::get()->filter(['Provider', 'Facebook'])->first();
 if (!$facebookToken->includesScope('user_friends')) {
     echo 'Unable to access friends list';
 }
@@ -105,8 +132,7 @@ echo "<a href=" . $url . ">Connect to Facebook</a>";
 
 ### Check whether a token is expired
 ```php
-$member = Member::currentUser();
-$facebookToken = $member->AccessTokens()->filter(['Provider', 'Facebook'])->first();
+$facebookToken = OAuthAccessToken::get()->filter(['Provider', 'Facebook'])->first();
 if ($facebookToken->isExpired()) {
     echo 'Oh no, the Facebook token has expired!';
 }
@@ -115,18 +141,9 @@ if ($facebookToken->isExpired()) {
 ### Refresh an access token
 
 ```php
-$member = Member::currentUser();
-$facebookToken = $member->AccessTokens()->filter(['Provider', 'Facebook'])->first();
+$facebookToken = OAuthAccessToken::get()->filter(['Provider', 'Facebook'])->first();
 if ($facebookToken->isExpired()) {
     $facebookToken->refresh();
     echo 'Token refreshed successfully';
 }
 ```
-
----
-
-## Todo
-
-- Tidy Controller - just look at the tests to see why
-- Make the default behaviour of only allowing one access token per provider on each member optional, or just remove it
-- Allow controller extensions to better influence request/response flow?
