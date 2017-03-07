@@ -3,6 +3,3 @@ Injector:
     class: 'Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory'
     properties:
       providers: []
-Member:
-  extensions:
-    - Bigfork\SilverStripeOAuth\Client\Extension\MemberExtension

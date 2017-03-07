@@ -26,35 +26,8 @@ class Controller extends SilverStripeController
     ];
 
     /**
-     * @var Member
-     */
-    protected $member;
-
-    /**
-     * @param Member $member
-     * @return self
-     */
-    public function setMember(Member $member)
-    {
-        $this->member = $member;
-        return $this;
-    }
-
-    /**
-     * @return Member|null
-     */
-    public function getMember()
-    {
-        if ($this->member) {
-            return $this->member;
-        }
-
-        return Member::currentUser();
-    }
-
-    /**
      * Copied from \Controler::redirectBack()
-     * 
+     *
      * @param SS_HTTPRequest $request
      * @return string|null
      */
@@ -77,7 +50,7 @@ class Controller extends SilverStripeController
 
     /**
      * Get the return URL previously stored in session
-     * 
+     *
      * @return string
      */
     protected function getReturnUrl()
@@ -109,7 +82,7 @@ class Controller extends SilverStripeController
     /**
      * This takes parameters like the provider, scopes and callback url, builds an authentication
      * url with the provider's site and then redirects to it
-     * 
+     *
      * @todo allow whitelisting of scopes (per provider)?
      * @param SS_HTTPRequest $request
      * @return mixed
@@ -145,7 +118,7 @@ class Controller extends SilverStripeController
 
     /**
      * The return endpoint after the user has authenticated with a provider
-     * 
+     *
      * @param SS_HTTPRequest $request
      * @return mixed
      */
@@ -158,28 +131,22 @@ class Controller extends SilverStripeController
         $session = $this->getSession();
         $providerName = $session->inst_get('oauth2.provider');
         $provider = Injector::inst()->get('ProviderFactory')->getProvider($providerName);
-        
+
         try {
-            $token = $provider->getAccessToken('authorization_code', [
+            $accessToken = $provider->getAccessToken('authorization_code', [
                 'code' => $request->getVar('code')
             ]);
 
+            // Store the access token in the database
+            $token = $this->storeAccessToken($accessToken, $providerName);
+
+            // Run extensions to process the token
             $results = $this->extend('afterGetAccessToken', $provider, $token, $providerName, $request);
             foreach ($results as $result) {
                 if ($result instanceof SS_HTTPResponse) {
                     return $result;
                 }
             }
-
-            $member = $this->getMember();
-            if (!$member) {
-                throw new Exception('Unable to find current member.');
-            }
-
-            // Clear existing tokens for this provider
-            $member->clearTokensFromProvider($providerName);
-            // Store the access token in the database
-            $this->storeAccessToken($member, $token, $providerName);
         } catch (IdentityProviderException $e) {
             SS_Log::log('OAuth IdentityProviderException: ' . $e->getMessage(), SS_Log::ERR);
             return $this->httpError(400, 'Invalid access token.');
@@ -192,16 +159,15 @@ class Controller extends SilverStripeController
     }
 
     /**
-     * Store the access token against a member. Also gets token scope info from session
-     * 
-     * @param Member $member
-     * @param AccessToken $token
+     * Store the access token in the database. Also gets token scope info from session
+     *
+     * @param AccessToken $accessToken
      * @param string $provider
+     * @return OAuthAccessToken
      */
-    protected function storeAccessToken(Member $member, AccessToken $token, $provider)
+    protected function storeAccessToken(AccessToken $accessToken, $provider)
     {
-        $accessToken = OAuthAccessToken::createFromAccessToken($provider, $token);
-        $accessToken->MemberID = $member->ID;
+        $accessToken = OAuthAccessToken::createFromAccessToken($provider, $accessToken);
         $accessToken->write();
 
         // Record which scopes the access token has
@@ -210,6 +176,8 @@ class Controller extends SilverStripeController
             $scope = OAuthScope::findOrMake($scope);
             $accessToken->Scopes()->add($scope);
         }
+
+        return $accessToken;
     }
 
     /**

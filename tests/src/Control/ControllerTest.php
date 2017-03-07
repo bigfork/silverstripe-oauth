@@ -6,7 +6,7 @@ use Bigfork\SilverStripeOAuth\Client\Control\Controller;
 use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
 use Director;
 use Injector;
-use Member;
+use OAuthAccessToken;
 use ReflectionMethod;
 use SS_HTTPRequest;
 use SS_HTTPResponse;
@@ -14,17 +14,6 @@ use SS_HTTPResponse_Exception;
 
 class ControllerTest extends TestCase
 {
-    public function testSetGetMember()
-    {
-        $controller = new Controller;
-
-        $this->assertEquals(Member::currentUser(), $controller->getMember());
-
-        $member = new Member;
-        $this->assertSame($controller, $controller->setMember($member));
-        $this->assertSame($member, $controller->getMember());
-    }
-
     public function testFindBackUrl()
     {
         $back = Director::absoluteBaseURL() . 'test/';
@@ -256,14 +245,9 @@ class ControllerTest extends TestCase
             ->with('oauth2.provider')
             ->will($this->returnValue('ProviderName'));
 
-        $mockMember = $this->getMock('Member', ['clearTokensFromProvider']);
-        $mockMember->expects($this->once())
-            ->method('clearTokensFromProvider')
-            ->with('ProviderName');
-
         $mockController = $this->getMock(
             'Bigfork\SilverStripeOAuth\Client\Control\Controller',
-            ['validateState', 'getSession', 'extend', 'getMember', 'storeAccessToken', 'getReturnUrl', 'redirect']
+            ['validateState', 'getSession', 'extend', 'storeAccessToken', 'getReturnUrl', 'redirect']
         );
         $mockController->expects($this->at(0))
             ->method('validateState')
@@ -273,19 +257,17 @@ class ControllerTest extends TestCase
             ->method('getSession')
             ->will($this->returnValue($mockSession));
         $mockController->expects($this->at(2))
-            ->method('extend')
-            ->with('afterGetAccessToken', $mockProvider, $mockAccessToken, 'ProviderName', $mockRequest)
-            ->will($this->returnValue([]));
-        $mockController->expects($this->at(3))
-            ->method('getMember')
-            ->will($this->returnValue($mockMember));
-        $mockController->expects($this->at(4))
             ->method('storeAccessToken')
-            ->with($mockMember, $mockAccessToken, 'ProviderName');
-        $mockController->expects($this->at(5))
+            ->with($mockAccessToken, 'ProviderName')
+            ->will($this->returnValue($token = new OAuthAccessToken));
+        $mockController->expects($this->at(3))
+            ->method('extend')
+            ->with('afterGetAccessToken', $mockProvider, $token, 'ProviderName', $mockRequest)
+            ->will($this->returnValue([]));
+        $mockController->expects($this->at(4))
             ->method('getReturnUrl')
             ->will($this->returnValue('http://mysite.com/return'));
-        $mockController->expects($this->at(6))
+        $mockController->expects($this->at(5))
             ->method('redirect')
             ->with('http://mysite.com/return')
             ->will($this->returnValue($response = new SS_HTTPResponse));

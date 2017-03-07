@@ -19,13 +19,6 @@ class OAuthAccessToken extends DataObject
     /**
      * @var array
      */
-    private static $has_one = [
-        'Member' => 'Member'
-    ];
-
-    /**
-     * @var array
-     */
     private static $many_many = [
         'Scopes' => 'OAuthScope'
     ];
@@ -45,7 +38,6 @@ class OAuthAccessToken extends DataObject
     {
         $fields = parent::getCMSFields();
 
-        $fields->removeByName('MemberID');
         $fields->removeByName('Scopes');
 
         $fields = $fields->transform(new ReadonlyTransformation());
@@ -83,6 +75,23 @@ class OAuthAccessToken extends DataObject
         $token = static::create()->update($data);
 
         return $token;
+    }
+
+    /**
+     * Convert the token to an AccessToken instance
+     *
+     * @return AccessToken
+     */
+    public function convertToAccessToken()
+    {
+        $data = [
+            'access_token' => $this->Token,
+            'refresh_token' => $this->RefreshToken,
+            'expires_in' => strtotime($this->Expires) - time(),
+            'resource_owner_id' => $this->ResourceOwnerID
+        ];
+
+        return new AccessToken($data);
     }
 
     /**
@@ -132,7 +141,7 @@ class OAuthAccessToken extends DataObject
 
     /**
      * Check whether this token's permissions include the given scope
-     * 
+     *
      * @param string $scope
      * @return boolean
      */
@@ -144,7 +153,7 @@ class OAuthAccessToken extends DataObject
     /**
      * Check whether this token's permissions include all of the given scopes
      * NOTE: this is an *and*, not an *or*
-     * 
+     *
      * @param array $scopes
      * @return boolean
      */
