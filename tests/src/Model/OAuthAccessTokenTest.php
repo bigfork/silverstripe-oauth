@@ -114,7 +114,7 @@ class OAuthAccessTokenTest extends TestCase
             ->with('ProviderName')
             ->will($this->returnValue($mockProvider));
 
-        Injector::inst()->registerService($mockFactory, 'Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory');
+        Injector::inst()->registerService($mockFactory, 'ProviderFactory');
 
         $token = new OAuthAccessToken();
         $token->Provider = 'ProviderName';
