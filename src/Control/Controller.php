@@ -141,7 +141,7 @@ class Controller extends SilverStripeController
             $token = $this->storeAccessToken($accessToken, $providerName);
 
             // Run extensions to process the token
-            $results = $this->extend('afterGetAccessToken', $provider, $token, $providerName, $request);
+            $results = $this->extend('afterGetAccessToken', $token, $request);
             foreach ($results as $result) {
                 if ($result instanceof SS_HTTPResponse) {
                     return $result;

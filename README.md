@@ -97,12 +97,8 @@ Bigfork\SilverStripeOAuth\Client\Control\Controller:
 ```php
 class MyControllerExtension extends Extension
 {
-    public function afterGetAccessToken(
-        League\OAuth2\Client\Provider\AbstractProvider $provider,
-        OAuthAccessToken $token,
-        $providerName,
-        SS_HTTPRequest $request
-    ) {
+    public function afterGetAccessToken(OAuthAccessToken $token, SS_HTTPRequest $request)
+    {
         $accountID = Session::get('Account.ID'); // Stored before redirecting to '/oauth/authenticate'
         $token->AccountID = $accountID;
         $token->write();

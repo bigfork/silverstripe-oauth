@@ -262,7 +262,7 @@ class ControllerTest extends TestCase
             ->will($this->returnValue($token = new OAuthAccessToken));
         $mockController->expects($this->at(3))
             ->method('extend')
-            ->with('afterGetAccessToken', $mockProvider, $token, 'ProviderName', $mockRequest)
+            ->with('afterGetAccessToken', $token, $mockRequest)
             ->will($this->returnValue([]));
         $mockController->expects($this->at(4))
             ->method('getReturnUrl')
