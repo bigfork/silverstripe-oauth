@@ -63,7 +63,7 @@ class Helper
 
     /**
      * Add in the redirectUri option to this service's constructor options
-     * 
+     *
      * @param array $config
      * @return array
      */

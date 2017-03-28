@@ -135,8 +135,7 @@ class OAuthAccessToken extends DataObject
      */
     public function getTokenProvider()
     {
-        return Injector::inst()->get('Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory')
-            ->getProvider($this->Provider);
+        return Injector::inst()->get('ProviderFactory')->getProvider($this->Provider);
     }
 
     /**
