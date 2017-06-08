@@ -4,6 +4,7 @@ namespace Bigfork\SilverStripeOAuth\Client\Test\Control;
 
 use Bigfork\SilverStripeOAuth\Client\Control\Controller;
 use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
+use Config;
 use Director;
 use Injector;
 use OAuthAccessToken;
@@ -116,8 +117,12 @@ class ControllerTest extends TestCase
             ->will($this->returnValue('ProviderName'));
         $mockRequest->expects($this->at(1))
             ->method('getVar')
+            ->with('context')
+            ->will($this->returnValue('testcontext'));
+        $mockRequest->expects($this->at(2))
+            ->method('getVar')
             ->with('scope')
-            ->will($this->returnValue([])); // Leave scopes empty to asset that getDefaultScopes() is called
+            ->will($this->returnValue([])); // Leave scopes empty to assert that getDefaultScopes() is called
 
         $mockProvider = $this->getConstructorlessMock(
             'League\OAuth2\Client\Provider\GenericProvider',
@@ -149,6 +154,7 @@ class ControllerTest extends TestCase
             ->with('oauth2', [
                 'state' => 'mockstate',
                 'provider' => 'ProviderName',
+                'context' => 'testcontext',
                 'scope' => ['default_scope'],
                 'backurl' => 'http://mysite.com/return'
             ]);
@@ -189,6 +195,10 @@ class ControllerTest extends TestCase
             ->with('provider')
             ->will($this->returnValue(null));
         $mockRequest->expects($this->at(1))
+            ->method('getVar')
+            ->with('context')
+            ->will($this->returnValue(null));
+        $mockRequest->expects($this->at(2))
             ->method('getVar')
             ->with('scope')
             ->will($this->returnValue(null));
@@ -233,41 +243,56 @@ class ControllerTest extends TestCase
             ->with('ProviderName')
             ->will($this->returnValue($mockProvider));
 
-        $mockInjector = $this->getMock('Injector', ['get']);
-        $mockInjector->expects($this->once())
+        $mockTokenHandler = $this->getMock(
+            'Bigfork\SilverStripeOAuth\Client\Handler\TokenHandler',
+            ['handleToken']
+        );
+        $mockTokenHandler->expects($this->once())
+            ->method('handleToken')
+            ->with($mockAccessToken, $mockProvider);
+
+        $mockInjector = $this->getMock('Injector', ['get', 'create']);
+        $mockInjector->expects($this->at(0))
             ->method('get')
             ->with('ProviderFactory')
             ->will($this->returnValue($mockProviderFactory));
+        $mockInjector->expects($this->at(1))
+            ->method('create')
+            ->with('TestTokenHandler')
+            ->will($this->returnValue($mockTokenHandler));
 
-        $mockSession = $this->getConstructorlessMock('Session', ['inst_get']);
-        $mockSession->expects($this->once())
+        $mockSession = $this->getConstructorlessMock('Session', ['inst_get', 'inst_clear']);
+        $mockSession->expects($this->at(0))
             ->method('inst_get')
             ->with('oauth2.provider')
             ->will($this->returnValue('ProviderName'));
+        $mockSession->expects($this->at(1))
+            ->method('inst_get')
+            ->with('oauth2.context')
+            ->will($this->returnValue('testcontext'));
+        $mockSession->expects($this->at(2))
+            ->method('inst_clear')
+            ->with('oauth2');
 
         $mockController = $this->getMock(
             'Bigfork\SilverStripeOAuth\Client\Control\Controller',
-            ['validateState', 'getSession', 'extend', 'storeAccessToken', 'getReturnUrl', 'redirect']
+            ['getSession', 'validateState', 'getHandlersForContext', 'getReturnUrl', 'redirect']
         );
         $mockController->expects($this->at(0))
+            ->method('getSession')
+            ->will($this->returnValue($mockSession));
+        $mockController->expects($this->at(1))
             ->method('validateState')
             ->with($mockRequest)
             ->will($this->returnValue(true));
-        $mockController->expects($this->at(1))
-            ->method('getSession')
-            ->will($this->returnValue($mockSession));
         $mockController->expects($this->at(2))
-            ->method('storeAccessToken')
-            ->with($mockAccessToken, 'ProviderName')
-            ->will($this->returnValue($token = new OAuthAccessToken));
+            ->method('getHandlersForContext')
+            ->with('testcontext')
+            ->will($this->returnValue([['priority' => 1, 'context' => 'testcontext', 'class' => 'TestTokenHandler']]));
         $mockController->expects($this->at(3))
-            ->method('extend')
-            ->with('afterGetAccessToken', $token, $mockRequest)
-            ->will($this->returnValue([]));
-        $mockController->expects($this->at(4))
             ->method('getReturnUrl')
             ->will($this->returnValue('http://mysite.com/return'));
-        $mockController->expects($this->at(5))
+        $mockController->expects($this->at(4))
             ->method('redirect')
             ->with('http://mysite.com/return')
             ->will($this->returnValue($response = new SS_HTTPResponse));
@@ -285,13 +310,23 @@ class ControllerTest extends TestCase
     {
         $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest');
 
-        $mockController = $this->getMock('Bigfork\SilverStripeOAuth\Client\Control\Controller', ['validateState']);
-        $mockController->expects($this->once())
+        $mockSession = $this->getConstructorlessMock('Session', ['inst_clear']);
+        $mockSession->expects($this->once())
+            ->method('inst_clear')
+            ->with('oauth2');
+
+        $mockController = $this->getMock(
+            'Bigfork\SilverStripeOAuth\Client\Control\Controller',
+            ['getSession', 'validateState']
+        );
+        $mockController->expects($this->at(0))
+            ->method('getSession')
+            ->will($this->returnValue($mockSession));
+        $mockController->expects($this->at(1))
             ->method('validateState')
             ->with($mockRequest)
             ->will($this->returnValue(false));
 
-        $controller = new Controller();
         try {
             $response = $mockController->callback($mockRequest);
             $this->fail('SS_HTTPResponse_Exception was not thrown');
@@ -299,5 +334,73 @@ class ControllerTest extends TestCase
             $this->assertEquals(400, $e->getResponse()->getStatusCode());
             $this->assertEquals('Invalid session state.', $e->getResponse()->getBody());
         }
+    }
+
+    /**
+     * @expectedException Exception
+     */
+    public function testGetHandlersForContextWithNoHandlers()
+    {
+        Config::inst()->remove('Bigfork\SilverStripeOAuth\Client\Control\Controller', 'token_handlers');
+        Config::inst()->update('Bigfork\SilverStripeOAuth\Client\Control\Controller', 'token_handlers', []);
+
+        $controller = new Controller;
+        $reflectionMethod = new ReflectionMethod(
+            'Bigfork\SilverStripeOAuth\Client\Control\Controller',
+            'getHandlersForContext'
+        );
+        $reflectionMethod->setAccessible(true);
+        $reflectionMethod->invoke($controller);
+    }
+
+    public function testGetHandlersForContext()
+    {
+        Config::inst()->remove('Bigfork\SilverStripeOAuth\Client\Control\Controller', 'token_handlers');
+        Config::inst()->update('Bigfork\SilverStripeOAuth\Client\Control\Controller', 'token_handlers', [
+            'globalhandlertwo' => [
+                'priority' => 3, 'context' => '*', 'class' => 'GlobalHandlerTwo'
+            ],
+            'namedhandlerone' => [
+                'priority' => 1, 'context' => 'testcontext', 'class' => 'NamedHandlerOne'
+            ],
+            'globalhandlerone' => [
+                'priority' => 2, 'context' => '*', 'class' => 'GlobalHandlerOne'
+            ],
+            'namedhandlertwo' => [
+                'priority' => 1, 'context' => 'anothertestcontext', 'class' => 'NamedHandlerTwo'
+            ]
+        ]);
+
+        $controller = new Controller;
+        $reflectionMethod = new ReflectionMethod(
+            'Bigfork\SilverStripeOAuth\Client\Control\Controller',
+            'getHandlersForContext'
+        );
+        $reflectionMethod->setAccessible(true);
+
+        // Not giving a context should run all "global" handlers, but no named ones
+        $expected = [
+            'globalhandlerone' => [
+                'priority' => 2, 'context' => '*', 'class' => 'GlobalHandlerOne'
+            ],
+            'globalhandlertwo' => [
+                'priority' => 3, 'context' => '*', 'class' => 'GlobalHandlerTwo'
+            ]
+        ];
+        $this->assertEquals($expected, $reflectionMethod->invoke($controller));
+
+        // Passing a context should run all "global" handlers, and those that match the context
+        $expected = [
+            'namedhandlerone' => [
+                'priority' => 1, 'context' => 'testcontext', 'class' => 'NamedHandlerOne'
+            ],
+            'globalhandlerone' => [
+                'priority' => 2, 'context' => '*', 'class' => 'GlobalHandlerOne'
+            ],
+            'globalhandlertwo' => [
+                'priority' => 3, 'context' => '*', 'class' => 'GlobalHandlerTwo'
+            ]
+        ];
+        $this->assertEquals($expected, $reflectionMethod->invoke($controller, 'testcontext'));
     }
 }

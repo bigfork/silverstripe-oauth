@@ -85,16 +85,18 @@ class Controller extends SilverStripeController
      *
      * @todo allow whitelisting of scopes (per provider)?
      * @param SS_HTTPRequest $request
-     * @return mixed
+     * @return SS_HTTPResponse
+     * @throws SS_HTTPResponse_Exception
      */
     public function authenticate(SS_HTTPRequest $request)
     {
         $providerName = $request->getVar('provider');
+        $context = $request->getVar('context');
         $scope = $request->getVar('scope');
 
         // Missing or invalid data means we can't proceed
         if (!$providerName || !is_array($scope)) {
-            return $this->httpError(404);
+            $this->httpError(404);
         }
 
         $provider = Injector::inst()->get('ProviderFactory')->getProvider($providerName);
@@ -109,6 +111,7 @@ class Controller extends SilverStripeController
         $this->getSession()->inst_set('oauth2', [
             'state' => $provider->getState(),
             'provider' => $providerName,
+            'context' => $context,
             'scope' => $scope,
             'backurl' => $this->findBackUrl($request)
         ]);
@@ -124,11 +127,13 @@ class Controller extends SilverStripeController
      */
     public function callback(SS_HTTPRequest $request)
     {
+        $session = $this->getSession();
+
         if (!$this->validateState($request)) {
+            $session->inst_clear('oauth2');
             return $this->httpError(400, 'Invalid session state.');
         }
 
-        $session = $this->getSession();
         $providerName = $session->inst_get('oauth2.provider');
         $provider = Injector::inst()->get('ProviderFactory')->getProvider($providerName);
 
@@ -137,13 +142,19 @@ class Controller extends SilverStripeController
                 'code' => $request->getVar('code')
             ]);
 
-            // Store the access token in the database
-            $token = $this->storeAccessToken($accessToken, $providerName);
+            $handlers = $this->getHandlersForContext($session->inst_get('oauth2.context'));
 
-            // Run extensions to process the token
-            $results = $this->extend('afterGetAccessToken', $token, $request);
+            // Run handlers to process the token
+            $results = [];
+            foreach ($handlers as $handlerConfig) {
+                $handler = Injector::inst()->create($handlerConfig['class']);
+                $results[] = $handler->handleToken($accessToken, $provider);
+            }
+
+            // Handlers may return response objects
             foreach ($results as $result) {
                 if ($result instanceof SS_HTTPResponse) {
+                    $session->inst_clear('oauth2');
                     return $result;
                 }
             }
@@ -153,31 +164,50 @@ class Controller extends SilverStripeController
         } catch (Exception $e) {
             SS_Log::log('OAuth Exception: ' . $e->getMessage(), SS_Log::ERR);
             return $this->httpError(400, $e->getMessage());
+        } finally {
+            $session->inst_clear('oauth2');
         }
 
         return $this->redirect($this->getReturnUrl());
     }
 
     /**
-     * Store the access token in the database. Also gets token scope info from session
+     * Get a list of token handlers for the given context
      *
-     * @param AccessToken $accessToken
-     * @param string $provider
-     * @return OAuthAccessToken
+     * @param string|null $context
+     * @return array
+     * @throws Exception
      */
-    protected function storeAccessToken(AccessToken $accessToken, $provider)
+    protected function getHandlersForContext($context = null)
     {
-        $accessToken = OAuthAccessToken::createFromAccessToken($provider, $accessToken);
-        $accessToken->write();
+        $handlers = static::config()->token_handlers;
 
-        // Record which scopes the access token has
-        $scopes = $this->getSession()->inst_get('oauth2.scope');
-        foreach ($scopes as $scope) {
-            $scope = OAuthScope::findOrMake($scope);
-            $accessToken->Scopes()->add($scope);
+        if (empty($handlers)) {
+            throw new Exception('No token handlers were registered');
         }
 
-        return $accessToken;
+        // If we've been given a context, limit to that context + global handlers.
+        // Otherwise only allow global handlers (i.e. exclude named ones)
+        $allowedContexts = ['*'];
+        if ($context) {
+            $allowedContexts[] = $context;
+        }
+
+        // Filter handlers by context
+        $handlers = array_filter($handlers, function ($handler) use ($allowedContexts) {
+            return in_array($handler['context'], $allowedContexts);
+        });
+
+        // Sort handlers by priority
+        uasort($handlers, function ($a, $b) {
+            if (!array_key_exists('priority', $a) || !array_key_exists('priority', $b)) {
+                return 0;
+            }
+
+            return ($a['priority'] < $b['priority']) ? -1 : 1;
+        });
+
+        return $handlers;
     }
 
     /**

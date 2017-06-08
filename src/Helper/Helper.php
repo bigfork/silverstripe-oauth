@@ -15,15 +15,17 @@ class Helper
     private static $default_redirect_uri;
 
     /**
-     * @param string $provider
-     * @param array $scopes
+     * @param string $provider The OAuth provider name (as configured in YAML)
+     * @param string $context The context from which the token is being requested, e.g. 'login'
+     * @param array $scopes An array of OAuth "scopes" required
      * @return string
      */
-    public static function buildAuthorisationUrl($provider, array $scopes = [])
+    public static function buildAuthorisationUrl($provider, $context = '', array $scopes = [])
     {
         $controller = Injector::inst()->get('Bigfork\SilverStripeOAuth\Client\Control\Controller');
         $data = [
             'provider' => $provider,
+            'context' => $context,
             'scope' => $scopes
         ];
 

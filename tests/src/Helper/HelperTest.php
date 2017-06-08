@@ -17,10 +17,10 @@ class HelperTest extends TestCase
         $controller = new HelperTest_Controller;
         Injector::inst()->registerService($controller, 'Bigfork\SilverStripeOAuth\Client\Control\Controller');
 
-        $url = Helper::buildAuthorisationUrl('ProviderName', ['test_scope']);
+        $url = Helper::buildAuthorisationUrl('ProviderName', 'testcontext', ['test_scope']);
 
         $expected = Director::absoluteBaseURL() . 'helpertest/authenticate/';
-        $expected .= '?provider=ProviderName&scope%5B0%5D=test_scope';
+        $expected .= '?provider=ProviderName&context=testcontext&scope%5B0%5D=test_scope';
 
         $this->assertEquals($expected, $url);
     }

@@ -2,18 +2,17 @@
 
 SilverStripe OAuth2 authentication, based on the PHP League's [OAuth2 client](http://oauth2-client.thephpleague.com/).
 
-## \*\* IMPORTANT \*\*
-
-Please note that this module is still in early development and should **not** be used in a production environment. It has not been fully tested, and may undergo significant changes before a stable release.
-
 ### What this module does
-This module includes the base functionality for fetching access tokens. It provides methods for creating requests to OAuth providers, fetching access tokens with various scopes/permissions, and storing them in the database.
+
+This module includes the base functionality for fetching access tokens. It provides methods for creating requests to OAuth providers, fetching access tokens with various scopes/permissions, and registering handlers for dealing with the returned tokens.
 
 ### What this module doesn’t do
 
-This module does not provide “Log in with &lt;provider&gt;” buttons, “Fetch contacts from &lt;provider&gt;” buttons, or any other functionality for actually interacting with providers - it only fetches and stores tokens that will allow you to do that. It’s up to you to install the appropriate packages for third-party providers, and to implement functionality that makes use of the access tokens to fetch data from those providers.
+This module does not provide “Log in with &lt;provider&gt;” buttons, “Fetch contacts from &lt;provider&gt;” buttons, or any other functionality for actually interacting with providers - it only fetches tokens that will allow you to do that. It’s up to you to install the appropriate packages for third-party providers, and to implement functionality that makes use of the access tokens to fetch data from those providers.
 
 If you’re looking for “Log in with &lt;provider&gt;” functionality, take a look at the add-on for this module: [SilverStripe OAuth Login](https://github.com/bigfork/silverstripe-oauth-login).
+
+This module also does not store access tokens in the database. If this is a requirement of your application, you will need to build your own models to handle this, and set up appropriate token handlers.
 
 ## Installation
 
@@ -21,7 +20,7 @@ This module must be installed with composer. Run `composer require bigfork/silve
 
 ## Configuration
 
-Providers are registered as `Injector` services using SilverStripe’s YAML configuration. This allows you to specify an “internal” name (passed around in URLs and stored in the database), a PHP class for the provider (that extends `League\OAuth2\Client\Provider\AbstractProvider`), and constructor parameters & class properties.
+Providers are registered as `Injector` services using SilverStripe’s YAML configuration. This allows you to specify an “internal” name (passed around in URLs and session data), a PHP class for the provider (that extends `League\OAuth2\Client\Provider\AbstractProvider`), and constructor parameters & class properties.
 
 For example, to setup Facebook as a provider, first install the [Facebook OAuth2 package](https://github.com/thephpleague/oauth2-facebook), and then add the following to your YAML config:
 
@@ -44,102 +43,60 @@ Note that in the above example, the required `redirectUri` constructor argument 
 
 ---
 
-## Concepts
-
-### Models
-
-This module adds two new models:
-
-#### `OAuthAccessToken`
-
-A single OAuth access token. Fields include:
-
-- `Token` - the access token itself
-- `Provider` - the provider name (“internal” name - see [Configuration](#configuration))
-- `RefreshToken` - the refresh token (optional)
-- `Expires` - the token expiry date (optional)
-- `ResourceOwnerID` - the resource owner ID (optional)
-
-This model also has a `many_many` relation to [`OAuthScope`](#OAuthScope).
-
-#### `OAuthScope`
-
-A scope (or “permission”) that a token has. This is simply a one-column table (`Name`) that stores a list of scopes that _all_ providers may share. Note that scopes in this table are not unique to each provider (for example, Facebook 'email' and Google 'email' scopes will share the same database record).
-
-Has a `belongs_many_many` relation to [`OAuthAccessToken`](#OAuthAccessToken).
-
-### Controller
-
-The module includes one extra controller, `Bigfork\SilverStripeOAuth\Client\Control\Controller`. This controller is responsible for setting up authentication requests, redirecting users to the third-party providers, and checking/handling tokens & redirections when the user returns to the site from the provider. This module also passes the returned access token to extensions to allow them to decide how the token should be used.
-
-### Helper
-
-A simple class to help build an authentication request URL to create an access token. Also responsible for ensuring the `redirectUri` option is set in each provider’s service configuration.
-
----
-
 ## Usage
 
-Below are a few examples of how to perform common actions with fetching/using tokens:
+##### If you’re looking for “Log in with &lt;provider&gt;” functionality, take a look at the add-on for this module: [SilverStripe OAuth Login](https://github.com/bigfork/silverstripe-oauth-login).
 
-### Add a token to a model
+In order to actually interact with an OAuth token, you’ll need to register a token handler (which implements `Bigfork\SilverStripeOAuth\Client\Handler\TokenHandler`) to do so as part of the callback process. Each handler has an optional numeric priority (to control the order in which they are called), and a “context”. The context option is used to ensure that the handler is only run when certain actions are performed, and matches up to the context parameter specified when issuing a token request (see the [Helper](#helper) section). Handlers registered with a context of `*` will always be called, regardless of the context provided.
 
-The module provides an `afterGetAccessToken()` extension hook, which allows extensions to decide how to handle the access token after it has been stored in the database. Throwing an exception in this method will result in the exception message being logged, and a "400 Bad Request" error page being shown. The method can also return an instance of `SS_HTTPResponse` which will be output to the browser after all remaining extensions have been run.
+Below is an example of a token handler responsible for fetching events from a user’s Facebook profile, and how to register it. We use the context parameter to ensure that the handler is only run when performing this action (we don’t want it to run when the user is logging in, for example).
 
-Below is a simplified example which will store the access token against an "Account" record.
+Here we register our token handler, with a context named `import_events`:
 
 ```yml
 Bigfork\SilverStripeOAuth\Client\Control\Controller:
-  extensions:
-    - MyControllerExtension
+  token_handlers:
+    importeventshandler:
+      priority: 1
+      context: 'import_events'
+      class: 'ImportEventsHandler'
 ```
 
-```php
-class MyControllerExtension extends Extension
-{
-    public function afterGetAccessToken(OAuthAccessToken $token, SS_HTTPRequest $request)
-    {
-        $accountID = Session::get('Account.ID'); // Stored before redirecting to '/oauth/authenticate'
-        $token->AccountID = $accountID;
-        $token->write();
-    }
-}
-```
-
-### Check whether a user's token has the given permission
-
-```php
-$facebookToken = OAuthAccessToken::get()->filter(['Provider', 'Facebook'])->first();
-if (!$facebookToken->includesScope('user_friends')) {
-    echo 'Unable to access friends list';
-}
-```
-
-### Request an access token
+Next, we need to build an authorisation URL with that context specified:
 
 ```php
 use Bigfork\SilverStripeOAuth\Client\Helper\Helper;
 
-// Build a URL for fetching a Facebook access token with the 'email' and 'user_friends' permissions
-// Will return a URL like: http://mysite.com/oauth/authenticate/?provider=Facebook&scope%5B0%5D=email&scope%5B2%5D=user_friends
-$url = Helper::buildAuthorisationUrl('Facebook', ['email', 'user_friends']);
-echo "<a href=" . $url . ">Connect to Facebook</a>";
+// Build a URL for fetching a Facebook access token with the required 'user_events' permission
+// Will return a URL like: http://mysite.com/oauth/authenticate/?provider=Facebook&context=import_events&scope%5B2%5D=user_events
+$url = Helper::buildAuthorisationUrl('Facebook', 'import_events', ['user_events']);
+echo "<a href=" . $url . ">Import events from Facebook</a>";
 ```
 
-### Check whether a token is expired
+When the user returns from Facebook, our token handler will be called as part of the callback process:
+
 ```php
-$facebookToken = OAuthAccessToken::get()->filter(['Provider', 'Facebook'])->first();
-if ($facebookToken->isExpired()) {
-    echo 'Oh no, the Facebook token has expired!';
+use Bigfork\SilverStripeOAuth\Client\Handler\TokenHandler;
+use League\OAuth2\Client\Provider\Facebook;
+use League\OAuth2\Client\Token\AccessToken;
+
+class ImportEventsHandler implements TokenHandler
+{
+    public function handleToken(AccessToken $token, Facebook $provider)
+    {
+        $baseUrl = 'https://graph.facebook.com/v2.8';
+        $params = http_build_query([
+            'fields' => 'id,name,start_time',
+            'limit' => '5',
+            'access_token' => $token->getToken(),
+            'appsecret_proof' => hash_hmac('sha256', $token->getToken(), '{facebook-app-secret}'),
+        ]);
+        $response = file_get_contents($baseUrl.'/me/events?'.$params);
+        $data = json_decode($response, true);
+
+        $this->importEvents($data);
+    }
 }
 ```
 
-### Refresh an access token
-
-```php
-$facebookToken = OAuthAccessToken::get()->filter(['Provider', 'Facebook'])->first();
-if ($facebookToken->isExpired()) {
-    $facebookToken->refresh();
-    echo 'Token refreshed successfully';
-}
-```
+Throwing an exception from the `handleToken()` method will result in all other handlers being cancelled, the exception message being logged, and a "400 Bad Request" error page being shown to the user. The method can also return an instance of `SS_HTTPResponse` which will be output to the browser after all remaining handlers have been run.
