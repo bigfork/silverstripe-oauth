@@ -286,12 +286,12 @@ class ControllerTest extends TestCase
             ->with($mockRequest)
             ->will($this->returnValue(true));
         $mockController->expects($this->at(2))
+            ->method('getReturnUrl')
+            ->will($this->returnValue('http://mysite.com/return'));
+        $mockController->expects($this->at(3))
             ->method('getHandlersForContext')
             ->with('testcontext')
             ->will($this->returnValue([['priority' => 1, 'context' => 'testcontext', 'class' => 'TestTokenHandler']]));
-        $mockController->expects($this->at(3))
-            ->method('getReturnUrl')
-            ->will($this->returnValue('http://mysite.com/return'));
         $mockController->expects($this->at(4))
             ->method('redirect')
             ->with('http://mysite.com/return')

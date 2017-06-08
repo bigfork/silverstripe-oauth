@@ -136,6 +136,7 @@ class Controller extends SilverStripeController
 
         $providerName = $session->inst_get('oauth2.provider');
         $provider = Injector::inst()->get('ProviderFactory')->getProvider($providerName);
+        $returnUrl = $this->getReturnUrl();
 
         try {
             $accessToken = $provider->getAccessToken('authorization_code', [
@@ -168,7 +169,7 @@ class Controller extends SilverStripeController
             $session->inst_clear('oauth2');
         }
 
-        return $this->redirect($this->getReturnUrl());
+        return $this->redirect($returnUrl);
     }
 
     /**
