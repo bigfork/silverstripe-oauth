@@ -4,14 +4,17 @@ namespace Bigfork\SilverStripeOAuth\Client\Test\Control;
 
 use Bigfork\SilverStripeOAuth\Client\Control\Controller;
 use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
-use Config;
-use Director;
-use Injector;
+
 use OAuthAccessToken;
 use ReflectionMethod;
-use SS_HTTPRequest;
-use SS_HTTPResponse;
-use SS_HTTPResponse_Exception;
+
+use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\Session;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Control\HTTPResponse_Exception;
+use SilverStripe\Core\Config\Config;
 
 class ControllerTest extends TestCase
 {
@@ -25,14 +28,14 @@ class ControllerTest extends TestCase
         );
         $reflectionMethod->setAccessible(true);
 
-        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['requestVar']);
+        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['requestVar']);
         $mockRequest->expects($this->exactly(2))
             ->method('requestVar')
             ->with('BackURL')
             ->will($this->returnValue($back));
         $this->assertEquals($back, $reflectionMethod->invoke($controller, $mockRequest));
 
-        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['requestVar', 'isAjax', 'getHeader']);
+        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['requestVar', 'isAjax', 'getHeader']);
         $mockRequest->expects($this->at(0))
             ->method('requestVar')
             ->with('BackURL')
@@ -50,7 +53,7 @@ class ControllerTest extends TestCase
             ->will($this->returnValue($back));
         $this->assertEquals($back, $reflectionMethod->invoke($controller, $mockRequest));
 
-        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['requestVar', 'isAjax', 'getHeader']);
+        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['requestVar', 'isAjax', 'getHeader']);
         $mockRequest->expects($this->at(0))
             ->method('requestVar')
             ->with('BackURL')
@@ -68,7 +71,7 @@ class ControllerTest extends TestCase
             ->will($this->returnValue($back));
         $this->assertEquals($back, $reflectionMethod->invoke($controller, $mockRequest));
 
-        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['requestVar']);
+        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['requestVar']);
         $mockRequest->expects($this->exactly(2))
             ->method('requestVar')
             ->with('BackURL')
@@ -86,7 +89,7 @@ class ControllerTest extends TestCase
         );
         $reflectionMethod->setAccessible(true);
 
-        $mockSession = $this->getConstructorlessMock('Session', ['inst_get']);
+        $mockSession = $this->getConstructorlessMock(Session::class, ['inst_get']);
         $mockSession->expects($this->once())
             ->method('inst_get')
             ->with('oauth2.backurl')
@@ -95,7 +98,7 @@ class ControllerTest extends TestCase
         $controller->setSession($mockSession);
         $this->assertEquals($back, $reflectionMethod->invoke($controller));
 
-        $mockSession = $this->getConstructorlessMock('Session', ['inst_get']);
+        $mockSession = $this->getConstructorlessMock(Session::class, ['inst_get']);
         $mockSession->expects($this->once())
             ->method('inst_get')
             ->with('oauth2.backurl')
@@ -110,7 +113,7 @@ class ControllerTest extends TestCase
         // Store original
         $injector = Injector::inst();
 
-        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['getVar']);
+        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['getVar']);
         $mockRequest->expects($this->at(0))
             ->method('getVar')
             ->with('provider')
@@ -148,7 +151,7 @@ class ControllerTest extends TestCase
             ->with('ProviderName')
             ->will($this->returnValue($mockProvider));
 
-        $mockSession = $this->getConstructorlessMock('Session', ['inst_set']);
+        $mockSession = $this->getConstructorlessMock(Session::class, ['inst_set']);
         $mockSession->expects($this->once())
             ->method('inst_set')
             ->with('oauth2', [
@@ -159,7 +162,7 @@ class ControllerTest extends TestCase
                 'backurl' => 'http://mysite.com/return'
             ]);
 
-        $mockInjector = $this->getMock('Injector', ['get']);
+        $mockInjector = $this->getMock(Injector::class, ['get']);
         $mockInjector->expects($this->once())
             ->method('get')
             ->with('ProviderFactory')
@@ -176,7 +179,7 @@ class ControllerTest extends TestCase
         $mockController->expects($this->at(1))
             ->method('redirect')
             ->with('http://example.com/oauth')
-            ->will($this->returnValue($response = new SS_HTTPResponse));
+            ->will($this->returnValue($response = new HTTPResponse));
 
         Injector::set_inst($mockInjector);
 
@@ -189,7 +192,7 @@ class ControllerTest extends TestCase
 
     public function testAuthenticateMissingRequiredData()
     {
-        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['getVar']);
+        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['getVar']);
         $mockRequest->expects($this->at(0))
             ->method('getVar')
             ->with('provider')
@@ -207,7 +210,7 @@ class ControllerTest extends TestCase
         try {
             $response = $controller->authenticate($mockRequest);
             $this->fail('SS_HTTPResponse_Exception was not thrown');
-        } catch (SS_HTTPResponse_Exception $e) {
+        } catch (HTTPResponse_Exception $e) {
             $this->assertEquals(404, $e->getResponse()->getStatusCode());
         }
     }
@@ -217,7 +220,7 @@ class ControllerTest extends TestCase
         // Store original
         $injector = Injector::inst();
 
-        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest', ['getVar']);
+        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['getVar']);
         $mockRequest->expects($this->once())
             ->method('getVar')
             ->with('code')
@@ -251,7 +254,7 @@ class ControllerTest extends TestCase
             ->method('handleToken')
             ->with($mockAccessToken, $mockProvider);
 
-        $mockInjector = $this->getMock('Injector', ['get', 'create']);
+        $mockInjector = $this->getMock(Injector::class, ['get', 'create']);
         $mockInjector->expects($this->at(0))
             ->method('get')
             ->with('ProviderFactory')
@@ -261,7 +264,7 @@ class ControllerTest extends TestCase
             ->with('TestTokenHandler')
             ->will($this->returnValue($mockTokenHandler));
 
-        $mockSession = $this->getConstructorlessMock('Session', ['inst_get', 'inst_clear']);
+        $mockSession = $this->getConstructorlessMock(Session::class, ['inst_get', 'inst_clear']);
         $mockSession->expects($this->at(0))
             ->method('inst_get')
             ->with('oauth2.provider')
@@ -295,7 +298,7 @@ class ControllerTest extends TestCase
         $mockController->expects($this->at(4))
             ->method('redirect')
             ->with('http://mysite.com/return')
-            ->will($this->returnValue($response = new SS_HTTPResponse));
+            ->will($this->returnValue($response = new HTTPResponse));
 
         Injector::set_inst($mockInjector);
 
@@ -308,9 +311,9 @@ class ControllerTest extends TestCase
 
     public function testCallbackInvalidState()
     {
-        $mockRequest = $this->getConstructorlessMock('SS_HTTPRequest');
+        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class);
 
-        $mockSession = $this->getConstructorlessMock('Session', ['inst_clear']);
+        $mockSession = $this->getConstructorlessMock(Session::class, ['inst_clear']);
         $mockSession->expects($this->once())
             ->method('inst_clear')
             ->with('oauth2');
@@ -330,7 +333,7 @@ class ControllerTest extends TestCase
         try {
             $response = $mockController->callback($mockRequest);
             $this->fail('SS_HTTPResponse_Exception was not thrown');
-        } catch (SS_HTTPResponse_Exception $e) {
+        } catch (HTTPResponse_Exception $e) {
             $this->assertEquals(400, $e->getResponse()->getStatusCode());
             $this->assertEquals('Invalid session state.', $e->getResponse()->getBody());
         }
