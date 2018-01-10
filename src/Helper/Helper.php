@@ -2,10 +2,10 @@
 
 namespace Bigfork\SilverStripeOAuth\Client\Helper;
 
-use Config;
-use Controller;
-use Director;
-use Injector;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Control\Director;
+use SilverStripe\Control\Controller;
+use SilverStripe\Core\Config\Config;
 
 class Helper
 {
@@ -42,7 +42,7 @@ class Helper
      */
     public static function addRedirectUriToConfigs()
     {
-        $factoryConfig = Config::inst()->get('Injector', 'ProviderFactory');
+        $factoryConfig = Config::inst()->get(Injector::class, 'ProviderFactory');
         $providers = $factoryConfig['properties']['providers'];
 
         foreach ($providers as $name => $spec) {
@@ -53,11 +53,11 @@ class Helper
 
             // Trim %$ServiceName to ServiceName
             $serviceName = substr($spec, 2);
-            $serviceConfig = (array)Config::inst()->get('Injector', $serviceName);
+            $serviceConfig = (array)Config::inst()->get(Injector::class, $serviceName);
 
             if (!empty($serviceConfig)) {
                 $serviceConfig = static::addRedirectUriToServiceConfig($serviceConfig);
-                Config::inst()->update('Injector', $serviceName, $serviceConfig);
+                Config::inst()->update(Injector::class, $serviceName, $serviceConfig);
                 Injector::inst()->load(array($serviceName => $serviceConfig));
             }
         }
