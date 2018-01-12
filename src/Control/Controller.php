@@ -2,18 +2,20 @@
 
 namespace Bigfork\SilverStripeOAuth\Client\Control;
 
-use Controller as SilverStripeController;
-use Director;
 use Exception;
-use Injector;
+
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use League\OAuth2\Client\Token\AccessToken;
-use Member;
+
 use OAuthAccessToken;
 use OAuthScope;
-use SS_HTTPRequest;
-use SS_HTTPResponse;
+
 use SS_Log;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\Director;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Control\Controller as SilverStripeController;
 
 class Controller extends SilverStripeController
 {
@@ -31,7 +33,7 @@ class Controller extends SilverStripeController
      * @param SS_HTTPRequest $request
      * @return string|null
      */
-    protected function findBackUrl(SS_HTTPRequest $request)
+    protected function findBackUrl(HTTPRequest $request)
     {
         if ($request->requestVar('BackURL')) {
             $backUrl = $request->requestVar('BackURL');
@@ -66,7 +68,7 @@ class Controller extends SilverStripeController
     /**
      * @return string
      */
-    public function Link()
+    public function Link($action = null)
     {
         return 'oauth/';
     }
@@ -88,7 +90,7 @@ class Controller extends SilverStripeController
      * @return SS_HTTPResponse
      * @throws SS_HTTPResponse_Exception
      */
-    public function authenticate(SS_HTTPRequest $request)
+    public function authenticate(HTTPRequest $request)
     {
         $providerName = $request->getVar('provider');
         $context = $request->getVar('context');
@@ -125,7 +127,7 @@ class Controller extends SilverStripeController
      * @param SS_HTTPRequest $request
      * @return mixed
      */
-    public function callback(SS_HTTPRequest $request)
+    public function callback(HTTPRequest $request)
     {
         $session = $this->getSession();
 
@@ -154,7 +156,7 @@ class Controller extends SilverStripeController
 
             // Handlers may return response objects
             foreach ($results as $result) {
-                if ($result instanceof SS_HTTPResponse) {
+                if ($result instanceof HTTPResponse) {
                     $session->inst_clear('oauth2');
                     return $result;
                 }
@@ -217,7 +219,7 @@ class Controller extends SilverStripeController
      * @param SS_HTTPRequest $request
      * @return boolean
      */
-    public function validateState(SS_HTTPRequest $request)
+    public function validateState(HTTPRequest $request)
     {
         $state = $request->getVar('state');
         $session = $this->getSession();

@@ -2,7 +2,7 @@
 
 namespace Bigfork\SilverStripeOAuth\Client\Test;
 
-use SapphireTest;
+use SilverStripe\Dev\SapphireTest;
 
 class TestCase extends SapphireTest
 {

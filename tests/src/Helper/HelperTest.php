@@ -4,11 +4,12 @@ namespace Bigfork\SilverStripeOAuth\Client\Test\Helper;
 
 use Bigfork\SilverStripeOAuth\Client\Helper\Helper;
 use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
-use Config;
-use Controller;
-use Director;
-use Injector;
+
 use ReflectionMethod;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Control\Director;
+use SilverStripe\Core\Config\Config;
+use SilverStripe\Control\Controller;
 
 class HelperTest extends TestCase
 {
@@ -37,14 +38,14 @@ class HelperTest extends TestCase
         $originalConfig = ['constructor' => ['Options' => ['apiKey' => '123']]];
         $expectedConfig = ['constructor' => ['Options' => ['apiKey' => '123', 'redirectUri' => $uri]]];
 
-        $mockConfig = $this->getMock('Config', ['get', 'update']);
+        $mockConfig = $this->getMock(Config::class, ['get', 'update']);
         $mockConfig->expects($this->at(0))
             ->method('get')
-            ->with('Injector', 'ProviderFactory')
+            ->with(Injector::class, 'ProviderFactory')
             ->will($this->returnValue($factoryConfig));
         $mockConfig->expects($this->at(1))
             ->method('get')
-            ->with('Injector', 'ProviderService')
+            ->with(Injector::class, 'ProviderService')
             ->will($this->returnValue($originalConfig));
         // This smells, because it makes assumptions about methods other than the one we're testing.
         // But mocking static methods sucks.
@@ -54,10 +55,10 @@ class HelperTest extends TestCase
             ->will($this->returnValue($uri));
         $mockConfig->expects($this->at(3))
             ->method('update')
-            ->with('Injector', 'ProviderService')
+            ->with(Injector::class, 'ProviderService')
             ->will($this->returnValue($expectedConfig));
 
-        $mockInjector = $this->getMock('Injector', ['load']);
+        $mockInjector = $this->getMock(Injector::class, ['load']);
         $mockInjector->expects($this->once())
             ->method('load')
             ->with(['ProviderService' => $expectedConfig]);
@@ -121,7 +122,7 @@ class HelperTest extends TestCase
         );
         $reflectionMethod->setAccessible(true);
 
-        $mockConfig = $this->getMock('Config', ['get']);
+        $mockConfig = $this->getMock(Config::class, ['get']);
         $mockConfig->expects($this->once())
             ->method('get')
             ->with('Bigfork\SilverStripeOAuth\Client\Helper\Helper', 'default_redirect_uri')
@@ -131,7 +132,7 @@ class HelperTest extends TestCase
         $this->assertEquals('http://foo.bar', $reflectionMethod->invoke(null));
         Config::set_instance($config);
 
-        $mockInjector = $this->getMock('Injector', ['get']);
+        $mockInjector = $this->getMock(Injector::class, ['get']);
         $mockInjector->expects($this->once())
             ->method('get')
             ->with('Bigfork\SilverStripeOAuth\Client\Control\Controller')
