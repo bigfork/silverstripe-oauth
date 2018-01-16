@@ -4,14 +4,13 @@ namespace Bigfork\SilverStripeOAuth\Client\Test\Helper;
 
 use Bigfork\SilverStripeOAuth\Client\Helper\Helper;
 use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
-
 use ReflectionMethod;
-use SilverStripe\Core\Injector\Injector;
-use SilverStripe\Core\Injector\InjectorLoader;
+use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\ConfigLoader;
-use SilverStripe\Control\Controller;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Core\Injector\InjectorLoader;
 
 class HelperTest extends TestCase
 {

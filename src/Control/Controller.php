@@ -10,7 +10,6 @@ use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Control\Controller as SilverStripeController;
 use SilverStripe\Core\Injector\Injector;
-use SS_Log;
 
 class Controller extends SilverStripeController
 {

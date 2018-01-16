@@ -3,7 +3,6 @@
 namespace Bigfork\SilverStripeOAuth\Client\Factory;
 
 use Bigfork\SilverStripeOAuth\Client\Authenticator\Authenticator;
-
 use InvalidArgumentException;
 
 class ProviderFactory
