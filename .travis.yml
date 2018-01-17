@@ -19,8 +19,8 @@ before_script:
 
 # Install composer dependencies
   - composer validate
-  - composer require silverstripe/installer:^4.0 --no-update
-  - composer install --prefer-dist
+  - composer require silverstripe/framework:^4 --no-update
+  - composer install --prefer-dist --no-interaction --no-progress --no-suggest --optimize-autoloader --verbose --profile
 
 script:
-  - vendor/bin/phpunit tests/
+  - vendor/bin/phpunit
