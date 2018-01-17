@@ -21,6 +21,11 @@ class Controller extends SilverStripeController
         'callback'
     ];
 
+    private static $url_handlers = [
+        'authenticate' => 'authenticate',
+        'callback' => 'callback'
+    ];
+
     /**
      * @var string
      */
@@ -124,7 +129,7 @@ class Controller extends SilverStripeController
 
         if (!$this->validateState($request)) {
             $session->clear('oauth2');
-            return $this->httpError(400, 'Invalid session state.');
+            $this->httpError(400, 'Invalid session state.');
         }
 
         $providerName = $session->get('oauth2.provider');
@@ -155,11 +160,11 @@ class Controller extends SilverStripeController
         } catch (IdentityProviderException $e) {
             $logger = Injector::inst()->get(LoggerInterface::class);
             $logger->error('OAuth IdentityProviderException: ' . $e->getMessage());
-            return $this->httpError(400, 'Invalid access token.');
+            $this->httpError(400, 'Invalid access token.');
         } catch (Exception $e) {
             $logger = Injector::inst()->get(LoggerInterface::class);
             $logger->error('OAuth Exception: ' . $e->getMessage());
-            return $this->httpError(400, $e->getMessage());
+            $this->httpError(400, $e->getMessage());
         } finally {
             $session->clear('oauth2');
         }
