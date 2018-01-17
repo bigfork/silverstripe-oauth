@@ -57,7 +57,7 @@ class Helper
 
             if (!empty($serviceConfig)) {
                 $serviceConfig = static::addRedirectUriToServiceConfig($serviceConfig);
-                Config::inst()->update(Injector::class, $serviceName, $serviceConfig);
+                Config::modify()->set(Injector::class, $serviceName, $serviceConfig);
                 Injector::inst()->load(array($serviceName => $serviceConfig));
             }
         }

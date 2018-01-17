@@ -5,6 +5,7 @@ namespace Bigfork\SilverStripeOAuth\Client\Test\Helper;
 use Bigfork\SilverStripeOAuth\Client\Helper\Helper;
 use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
 use ReflectionMethod;
+use SilverStripe\Config\Collections\MemoryConfigCollection;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Config\Config;
@@ -39,8 +40,16 @@ class HelperTest extends TestCase
         $originalConfig = ['constructor' => ['Options' => ['apiKey' => '123']]];
         $expectedConfig = ['constructor' => ['Options' => ['apiKey' => '123', 'redirectUri' => $uri]]];
 
+        $mockMutableConfig = $this->getMockBuilder(MemoryConfigCollection::class)
+            ->setMethods(['set'])
+            ->getMock();
+        $mockMutableConfig->expects($this->once())
+            ->method('set')
+            ->with(Injector::class, 'ProviderService')
+            ->will($this->returnValue($expectedConfig));
+
         $mockConfig = $this->getMockBuilder(get_class(Config::inst()))
-            ->setMethods(['get', 'update'])
+            ->setMethods(['get', 'nest'])
             ->getMock();
         $mockConfig->expects($this->at(0))
             ->method('get')
@@ -57,9 +66,9 @@ class HelperTest extends TestCase
             ->with('Bigfork\SilverStripeOAuth\Client\Helper\Helper', 'default_redirect_uri')
             ->will($this->returnValue($uri));
         $mockConfig->expects($this->at(3))
-            ->method('update')
+            ->method('nest')
             ->with(Injector::class, 'ProviderService')
-            ->will($this->returnValue($expectedConfig));
+            ->will($this->returnValue($mockMutableConfig));
 
         $mockInjector = $this->getMockBuilder(Injector::class)
             ->setMethods(['load'])
