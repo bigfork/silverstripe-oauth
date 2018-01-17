@@ -5,6 +5,7 @@ namespace Bigfork\SilverStripeOAuth\Client\Test\Helper;
 use Bigfork\SilverStripeOAuth\Client\Helper\Helper;
 use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
 use ReflectionMethod;
+use SilverStripe\Config\Collections\CachedConfigCollection;
 use SilverStripe\Config\Collections\MemoryConfigCollection;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
@@ -40,17 +41,13 @@ class HelperTest extends TestCase
         $originalConfig = ['constructor' => ['Options' => ['apiKey' => '123']]];
         $expectedConfig = ['constructor' => ['Options' => ['apiKey' => '123', 'redirectUri' => $uri]]];
 
+        $mockConfig = $this->getMockBuilder(CachedConfigCollection::class)
+            ->setMethods(['get', 'nest'])
+            ->getMock();
         $mockMutableConfig = $this->getMockBuilder(MemoryConfigCollection::class)
             ->setMethods(['set'])
             ->getMock();
-        $mockMutableConfig->expects($this->once())
-            ->method('set')
-            ->with(Injector::class, 'ProviderService')
-            ->will($this->returnValue($expectedConfig));
 
-        $mockConfig = $this->getMockBuilder(get_class(Config::inst()))
-            ->setMethods(['get', 'nest'])
-            ->getMock();
         $mockConfig->expects($this->at(0))
             ->method('get')
             ->with(Injector::class, 'ProviderFactory')
@@ -67,8 +64,12 @@ class HelperTest extends TestCase
             ->will($this->returnValue($uri));
         $mockConfig->expects($this->at(3))
             ->method('nest')
-            ->with(Injector::class, 'ProviderService')
             ->will($this->returnValue($mockMutableConfig));
+
+        $mockMutableConfig->expects($this->once())
+            ->method('set')
+            ->with(Injector::class, 'ProviderService')
+            ->will($this->returnValue($expectedConfig));
 
         $mockInjector = $this->getMockBuilder(Injector::class)
             ->setMethods(['load'])
@@ -136,7 +137,7 @@ class HelperTest extends TestCase
         );
         $reflectionMethod->setAccessible(true);
 
-        $mockConfig = $this->getMockBuilder(get_class(Config::inst()))
+        $mockConfig = $this->getMockBuilder(CachedConfigCollection::class)
             ->setMethods(['get'])
             ->getMock();
         $mockConfig->expects($this->once())
