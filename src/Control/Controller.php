@@ -95,6 +95,7 @@ class Controller extends SilverStripeController
         // Missing or invalid data means we can't proceed
         if (!$providerName || !is_array($scope)) {
             $this->httpError(404);
+            return;
         }
 
         $provider = Injector::inst()->get('ProviderFactory')->getProvider($providerName);
@@ -130,6 +131,7 @@ class Controller extends SilverStripeController
         if (!$this->validateState($request)) {
             $session->clear('oauth2');
             $this->httpError(400, 'Invalid session state.');
+            return;
         }
 
         $providerName = $session->get('oauth2.provider');
@@ -161,10 +163,12 @@ class Controller extends SilverStripeController
             $logger = Injector::inst()->get(LoggerInterface::class);
             $logger->error('OAuth IdentityProviderException: ' . $e->getMessage());
             $this->httpError(400, 'Invalid access token.');
+            return;
         } catch (Exception $e) {
             $logger = Injector::inst()->get(LoggerInterface::class);
             $logger->error('OAuth Exception: ' . $e->getMessage());
             $this->httpError(400, $e->getMessage());
+            return;
         } finally {
             $session->clear('oauth2');
         }
