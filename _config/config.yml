@@ -1,5 +1,4 @@
 SilverStripe\Core\Injector\Injector:
-  ProviderFactory:
-    class: 'Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory'
+  Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory:
     properties:
       providers: []

@@ -6,6 +6,8 @@ use Bigfork\SilverStripeOAuth\Client\Control\Controller;
 use Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory;
 use Bigfork\SilverStripeOAuth\Client\Handler\TokenHandler;
 use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
+use League\OAuth2\Client\Provider\GenericProvider;
+use League\OAuth2\Client\Token\AccessToken;
 use ReflectionMethod;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
@@ -22,10 +24,7 @@ class ControllerTest extends TestCase
     {
         $back = Director::absoluteBaseURL() . 'test/';
         $controller = new Controller;
-        $reflectionMethod = new ReflectionMethod(
-            'Bigfork\SilverStripeOAuth\Client\Control\Controller',
-            'findBackUrl'
-        );
+        $reflectionMethod = new ReflectionMethod(Controller::class, 'findBackUrl');
         $reflectionMethod->setAccessible(true);
 
         $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['requestVar']);
@@ -83,10 +82,7 @@ class ControllerTest extends TestCase
     {
         $back = Director::absoluteBaseURL() . 'test/';
         $controller = new Controller;
-        $reflectionMethod = new ReflectionMethod(
-            'Bigfork\SilverStripeOAuth\Client\Control\Controller',
-            'getReturnUrl'
-        );
+        $reflectionMethod = new ReflectionMethod(Controller::class, 'getReturnUrl');
         $reflectionMethod->setAccessible(true);
 
         $mockSession = $this->getConstructorlessMock(Session::class, ['get']);
@@ -110,9 +106,6 @@ class ControllerTest extends TestCase
 
     public function testAuthenticate()
     {
-        // Store original
-        $injector = Injector::inst();
-
         $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['getVar']);
         $mockRequest->expects($this->at(0))
             ->method('getVar')
@@ -128,7 +121,7 @@ class ControllerTest extends TestCase
             ->will($this->returnValue([])); // Leave scopes empty to assert that getDefaultScopes() is called
 
         $mockProvider = $this->getConstructorlessMock(
-            'League\OAuth2\Client\Provider\GenericProvider',
+            GenericProvider::class,
             ['getDefaultScopes', 'getAuthorizationUrl', 'getState']
         );
         $mockProvider->expects($this->at(0))
@@ -181,6 +174,7 @@ class ControllerTest extends TestCase
             ->with('http://example.com/oauth')
             ->will($this->returnValue($response = new HTTPResponse));
 
+        // Inject mock
         InjectorLoader::inst()->pushManifest($mockInjector);
 
         $mockRequest->setSession($mockSession);
@@ -226,12 +220,9 @@ class ControllerTest extends TestCase
             ->with('code')
             ->will($this->returnValue('12345'));
 
-        $mockAccessToken = $this->getConstructorlessMock('League\OAuth2\Client\Token\AccessToken');
+        $mockAccessToken = $this->getConstructorlessMock(AccessToken::class);
 
-        $mockProvider = $this->getConstructorlessMock(
-            'League\OAuth2\Client\Provider\GenericProvider',
-            ['getAccessToken']
-        );
+        $mockProvider = $this->getConstructorlessMock(GenericProvider::class, ['getAccessToken']);
         $mockProvider->expects($this->once())
             ->method('getAccessToken')
             ->with('authorization_code', ['code' => '12345'])
@@ -296,6 +287,7 @@ class ControllerTest extends TestCase
             ->with('http://mysite.com/return')
             ->will($this->returnValue($response = new HTTPResponse));
 
+        // Inject mock
         InjectorLoader::inst()->pushManifest($mockInjector);
 
         $mockRequest->setSession($mockSession);
@@ -335,26 +327,21 @@ class ControllerTest extends TestCase
     }
 
     /**
-     * @expectedException Exception
+     * @expectedException \Exception
      */
     public function testGetHandlersForContextWithNoHandlers()
     {
-        Config::inst()->remove('Bigfork\SilverStripeOAuth\Client\Control\Controller', 'token_handlers');
-        Config::inst()->update('Bigfork\SilverStripeOAuth\Client\Control\Controller', 'token_handlers', []);
+        Config::modify()->set(Controller::class, 'token_handlers', []);
 
         $controller = new Controller;
-        $reflectionMethod = new ReflectionMethod(
-            'Bigfork\SilverStripeOAuth\Client\Control\Controller',
-            'getHandlersForContext'
-        );
+        $reflectionMethod = new ReflectionMethod(Controller::class, 'getHandlersForContext');
         $reflectionMethod->setAccessible(true);
         $reflectionMethod->invoke($controller);
     }
 
     public function testGetHandlersForContext()
     {
-        Config::inst()->remove('Bigfork\SilverStripeOAuth\Client\Control\Controller', 'token_handlers');
-        Config::inst()->update('Bigfork\SilverStripeOAuth\Client\Control\Controller', 'token_handlers', [
+        Config::modify()->set(Controller::class, 'token_handlers', [
             'globalhandlertwo' => [
                 'priority' => 3, 'context' => '*', 'class' => 'GlobalHandlerTwo'
             ],
@@ -370,10 +357,7 @@ class ControllerTest extends TestCase
         ]);
 
         $controller = new Controller;
-        $reflectionMethod = new ReflectionMethod(
-            'Bigfork\SilverStripeOAuth\Client\Control\Controller',
-            'getHandlersForContext'
-        );
+        $reflectionMethod = new ReflectionMethod(Controller::class, 'getHandlersForContext');
         $reflectionMethod->setAccessible(true);
 
         // Not giving a context should run all "global" handlers, but no named ones

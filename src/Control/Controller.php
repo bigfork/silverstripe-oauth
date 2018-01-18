@@ -2,6 +2,7 @@
 
 namespace Bigfork\SilverStripeOAuth\Client\Control;
 
+use Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory;
 use Exception;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use Psr\Log\LoggerInterface;
@@ -13,9 +14,6 @@ use SilverStripe\Core\Injector\Injector;
 
 class Controller extends SilverStripeController
 {
-    /**
-     * @var array
-     */
     private static $allowed_actions = [
         'authenticate',
         'callback'
@@ -26,20 +24,19 @@ class Controller extends SilverStripeController
         'callback' => 'callback'
     ];
 
-    /**
-     * @var string
-     */
     private static $url_segment = 'oauth';
 
     /**
-     * Copied from \SilverStripe\Control\Controller::redirectBack()
+     * Logic copied from \SilverStripe\Control\Controller::redirectBack()
      *
      * @param HTTPRequest $request
      * @return string|null
      */
     protected function findBackUrl(HTTPRequest $request)
     {
-        if ($request->requestVar('BackURL')) {
+        if ($request->getSession() && $request->getSession()->get('BackURL')) {
+            $backUrl = $request->getSession()->get('BackURL');
+        } elseif ($request->requestVar('BackURL')) {
             $backUrl = $request->requestVar('BackURL');
         } elseif ($request->isAjax() && $request->getHeader('X-Backurl')) {
             $backUrl = $request->getHeader('X-Backurl');
@@ -98,7 +95,7 @@ class Controller extends SilverStripeController
             return;
         }
 
-        $provider = Injector::inst()->get('ProviderFactory')->getProvider($providerName);
+        $provider = Injector::inst()->get(ProviderFactory::class)->getProvider($providerName);
 
         // Ensure we always have scope to work with
         if (empty($scope)) {
@@ -135,7 +132,7 @@ class Controller extends SilverStripeController
         }
 
         $providerName = $session->get('oauth2.provider');
-        $provider = Injector::inst()->get('ProviderFactory')->getProvider($providerName);
+        $provider = Injector::inst()->get(ProviderFactory::class)->getProvider($providerName);
         $returnUrl = $this->getReturnUrl();
 
         try {

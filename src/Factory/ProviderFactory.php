@@ -7,13 +7,10 @@ use InvalidArgumentException;
 
 class ProviderFactory
 {
-    /**
-     * @var array
-     */
     protected $providers = [];
 
     /**
-     * @param array
+     * @param array $providers
      * @return self
      */
     public function setProviders(array $providers)
