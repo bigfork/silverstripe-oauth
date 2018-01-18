@@ -6,6 +6,7 @@ use Bigfork\SilverStripeOAuth\Client\Control\Controller;
 use Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory;
 use Bigfork\SilverStripeOAuth\Client\Handler\TokenHandler;
 use Bigfork\SilverStripeOAuth\Client\Test\TestCase;
+use Embed\Providers\Provider;
 use League\OAuth2\Client\Provider\GenericProvider;
 use League\OAuth2\Client\Token\AccessToken;
 use ReflectionMethod;
@@ -27,50 +28,71 @@ class ControllerTest extends TestCase
         $reflectionMethod = new ReflectionMethod(Controller::class, 'findBackUrl');
         $reflectionMethod->setAccessible(true);
 
-        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['requestVar']);
+        $mockSession = $this->getConstructorlessMock(Session::class, ['get']);
+        $mockSession->expects($this->exactly(2))
+            ->method('get')
+            ->with('BackURL')
+            ->will($this->returnValue($back));
+        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['getSession']);
+        $mockRequest->expects($this->exactly(3))
+            ->method('getSession')
+            ->will($this->returnValue($mockSession));
+        $this->assertEquals($back, $reflectionMethod->invoke($controller, $mockRequest));
+
+        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['getSession', 'requestVar']);
+        $mockRequest->expects($this->exactly(1))
+            ->method('getSession')
+            ->will($this->returnValue(null));
         $mockRequest->expects($this->exactly(2))
             ->method('requestVar')
             ->with('BackURL')
             ->will($this->returnValue($back));
         $this->assertEquals($back, $reflectionMethod->invoke($controller, $mockRequest));
 
-        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['requestVar', 'isAjax', 'getHeader']);
-        $mockRequest->expects($this->at(0))
+        $mockRequest = $this->getConstructorlessMock(
+            HTTPRequest::class,
+            ['getSession', 'requestVar', 'isAjax', 'getHeader']
+        );
+        $mockRequest->expects($this->exactly(1))
+            ->method('getSession')
+            ->will($this->returnValue(null));
+        $mockRequest->expects($this->exactly(1))
             ->method('requestVar')
             ->with('BackURL')
             ->will($this->returnValue(null));
-        $mockRequest->expects($this->at(1))
+        $mockRequest->expects($this->exactly(1))
             ->method('isAjax')
             ->will($this->returnValue(true));
-        $mockRequest->expects($this->at(2))
-            ->method('getHeader')
-            ->with('X-Backurl')
-            ->will($this->returnValue($back));
-        $mockRequest->expects($this->at(3))
+        $mockRequest->expects($this->exactly(2))
             ->method('getHeader')
             ->with('X-Backurl')
             ->will($this->returnValue($back));
         $this->assertEquals($back, $reflectionMethod->invoke($controller, $mockRequest));
 
-        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['requestVar', 'isAjax', 'getHeader']);
-        $mockRequest->expects($this->at(0))
+        $mockRequest = $this->getConstructorlessMock(
+            HTTPRequest::class,
+            ['getSession', 'requestVar', 'isAjax', 'getHeader']
+        );
+        $mockRequest->expects($this->exactly(1))
+            ->method('getSession')
+            ->will($this->returnValue(null));
+        $mockRequest->expects($this->exactly(1))
             ->method('requestVar')
             ->with('BackURL')
             ->will($this->returnValue(null));
-        $mockRequest->expects($this->at(1))
+        $mockRequest->expects($this->exactly(1))
             ->method('isAjax')
             ->will($this->returnValue(false));
-        $mockRequest->expects($this->at(2))
-            ->method('getHeader')
-            ->with('Referer')
-            ->will($this->returnValue($back));
-        $mockRequest->expects($this->at(3))
+        $mockRequest->expects($this->exactly(2))
             ->method('getHeader')
             ->with('Referer')
             ->will($this->returnValue($back));
         $this->assertEquals($back, $reflectionMethod->invoke($controller, $mockRequest));
 
-        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['requestVar']);
+        $mockRequest = $this->getConstructorlessMock(HTTPRequest::class, ['getSession', 'requestVar']);
+        $mockRequest->expects($this->exactly(1))
+            ->method('getSession')
+            ->will($this->returnValue(null));
         $mockRequest->expects($this->exactly(2))
             ->method('requestVar')
             ->with('BackURL')
@@ -159,7 +181,7 @@ class ControllerTest extends TestCase
             ->getMock();
         $mockInjector->expects($this->once())
             ->method('get')
-            ->with('ProviderFactory')
+            ->with(ProviderFactory::class)
             ->will($this->returnValue($mockProviderFactory));
 
         $mockController = $this->getMockBuilder(Controller::class)
@@ -248,7 +270,7 @@ class ControllerTest extends TestCase
             ->getMock();
         $mockInjector->expects($this->at(0))
             ->method('get')
-            ->with('ProviderFactory')
+            ->with(ProviderFactory::class)
             ->will($this->returnValue($mockProviderFactory));
         $mockInjector->expects($this->at(1))
             ->method('create')
