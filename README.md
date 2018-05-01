@@ -100,3 +100,28 @@ class ImportEventsHandler implements TokenHandler
 ```
 
 Throwing an exception from the `handleToken()` method will result in all other handlers being cancelled, the exception message being logged, and a "400 Bad Request" error page being shown to the user. The method can also return an instance of `SS_HTTPResponse` which will be output to the browser after all remaining handlers have been run.
+
+## Logging
+
+By default, OAuth errors will be logged to PHP’s error log. You can set up your own logging by overriding the `Bigfork\SilverStripeOAuth\Client\Logger` Injector service definition. For example, to log errors to an `oauth.log` file:
+
+```yml
+---
+After: silverstripe-oauth-logging
+---
+SilverStripe\Core\Injector\Injector:
+  Bigfork\SilverStripeOAuth\Client\Logger:
+    calls: null # Reset - without this, the below "calls" would be merged in instead of replacing the original
+---
+After: silverstripe-oauth-logging
+---
+SilverStripe\Core\Injector\Injector:
+  Bigfork\SilverStripeOAuth\Client\Logger:
+    calls:
+      pushDisplayErrorHandler: [ pushHandler, [ '%$OAuthLogFileHandler' ] ]
+  OAuthLogFileHandler:
+    class: Monolog\Handler\StreamHandler
+    constructor:
+       - '../oauth.log'
+       - 'error'
+```

@@ -1,0 +1,11 @@
+---
+Name: silverstripe-oauth-logging
+---
+SilverStripe\Core\Injector\Injector:
+  Bigfork\SilverStripeOAuth\Client\Logger:
+    type: singleton
+    class: Monolog\Logger
+    constructor:
+      - "oauth-error-log"
+    calls:
+      pushDisplayErrorHandler: [ pushHandler, [ '%$Monolog\Handler\ErrorLogHandler' ] ]

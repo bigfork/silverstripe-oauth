@@ -3,6 +3,7 @@
 namespace Bigfork\SilverStripeOAuth\Client\Control;
 
 use Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory;
+use Bigfork\SilverStripeOAuth\Client\Logger;
 use Exception;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use Psr\Log\LoggerInterface;
@@ -157,12 +158,12 @@ class Controller extends SilverStripeController
                 }
             }
         } catch (IdentityProviderException $e) {
-            $logger = Injector::inst()->get(LoggerInterface::class);
+            $logger = Injector::inst()->get(Logger::class);
             $logger->error('OAuth IdentityProviderException: ' . $e->getMessage());
             $this->httpError(400, 'Invalid access token.');
             return;
         } catch (Exception $e) {
-            $logger = Injector::inst()->get(LoggerInterface::class);
+            $logger = Injector::inst()->get(Logger::class);
             $logger->error('OAuth Exception: ' . $e->getMessage());
             $this->httpError(400, $e->getMessage());
             return;
