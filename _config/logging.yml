@@ -2,10 +2,12 @@
 Name: silverstripe-oauth-logging
 ---
 SilverStripe\Core\Injector\Injector:
-  Bigfork\SilverStripeOAuth\Client\Logger:
+  Psr\Log\LoggerInterface.oauth:
     type: singleton
     class: Monolog\Logger
     constructor:
       - "oauth-error-log"
     calls:
       pushDisplayErrorHandler: [ pushHandler, [ '%$Monolog\Handler\ErrorLogHandler' ] ]
+  # Alias for old service name
+  Bigfork\SilverStripeOAuth\Client\Logger: '%$Psr\Log\LoggerInterface.oauth'

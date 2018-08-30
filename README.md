@@ -103,20 +103,20 @@ Throwing an exception from the `handleToken()` method will result in all other h
 
 ## Logging
 
-By default, OAuth errors will be logged to PHP’s error log. You can set up your own logging by overriding the `Bigfork\SilverStripeOAuth\Client\Logger` Injector service definition. For example, to log errors to an `oauth.log` file:
+By default, OAuth errors will be logged to PHP’s error log. You can set up your own logging by overriding the `Psr\Log\LoggerInterface.oauth:` Injector service definition. For example, to log errors to an `oauth.log` file:
 
 ```yml
 ---
 After: silverstripe-oauth-logging
 ---
 SilverStripe\Core\Injector\Injector:
-  Bigfork\SilverStripeOAuth\Client\Logger:
+  Psr\Log\LoggerInterface.oauth:
     calls: null # Reset - without this, the below "calls" would be merged in instead of replacing the original
 ---
 After: silverstripe-oauth-logging
 ---
 SilverStripe\Core\Injector\Injector:
-  Bigfork\SilverStripeOAuth\Client\Logger:
+  Psr\Log\LoggerInterface.oauth:
     calls:
       pushDisplayErrorHandler: [ pushHandler, [ '%$OAuthLogFileHandler' ] ]
   OAuthLogFileHandler:

@@ -3,14 +3,14 @@
 namespace Bigfork\SilverStripeOAuth\Client\Control;
 
 use Bigfork\SilverStripeOAuth\Client\Factory\ProviderFactory;
-use Bigfork\SilverStripeOAuth\Client\Logger;
 use Exception;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use Psr\Log\LoggerInterface;
+use SilverStripe\Control\Controller as SilverStripeController;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
-use SilverStripe\Control\Controller as SilverStripeController;
+use SilverStripe\Control\HTTPResponse_Exception;
 use SilverStripe\Core\Injector\Injector;
 
 class Controller extends SilverStripeController
@@ -43,6 +43,8 @@ class Controller extends SilverStripeController
             $backUrl = $request->getHeader('X-Backurl');
         } elseif ($request->getHeader('Referer')) {
             $backUrl = $request->getHeader('Referer');
+        } else {
+            $backUrl = null;
         }
 
         if (!$backUrl || !Director::is_site_url($backUrl)) {
@@ -82,7 +84,7 @@ class Controller extends SilverStripeController
      * @todo allow whitelisting of scopes (per provider)?
      * @param HTTPRequest $request
      * @return HTTPResponse
-     * @throws \SilverStripe\Control\HTTPResponse_Exception
+     * @throws HTTPResponse_Exception
      */
     public function authenticate(HTTPRequest $request)
     {
@@ -93,16 +95,12 @@ class Controller extends SilverStripeController
         // Missing or invalid data means we can't proceed
         if (!$providerName || !is_array($scope)) {
             $this->httpError(404);
-            return;
+            return null;
         }
 
-        $provider = Injector::inst()->get(ProviderFactory::class)->getProvider($providerName);
-
-        // Ensure we always have scope to work with
-        if (empty($scope)) {
-            $scope = $provider->getDefaultScopes();
-        }
-
+        /** @var ProviderFactory $providerFactory */
+        $providerFactory = Injector::inst()->get(ProviderFactory::class);
+        $provider = $providerFactory->getProvider($providerName);
         $url = $provider->getAuthorizationUrl(['scope' => $scope]);
 
         $request->getSession()->set('oauth2', [
@@ -120,7 +118,8 @@ class Controller extends SilverStripeController
      * The return endpoint after the user has authenticated with a provider
      *
      * @param HTTPRequest $request
-     * @return mixed
+     * @return HTTPResponse
+     * @throws HTTPResponse_Exception
      */
     public function callback(HTTPRequest $request)
     {
@@ -129,11 +128,13 @@ class Controller extends SilverStripeController
         if (!$this->validateState($request)) {
             $session->clear('oauth2');
             $this->httpError(400, 'Invalid session state.');
-            return;
+            return null;
         }
 
         $providerName = $session->get('oauth2.provider');
-        $provider = Injector::inst()->get(ProviderFactory::class)->getProvider($providerName);
+        /** @var ProviderFactory $providerFactory */
+        $providerFactory = Injector::inst()->get(ProviderFactory::class);
+        $provider = $providerFactory->getProvider($providerName);
         $returnUrl = $this->getReturnUrl();
 
         try {
@@ -158,15 +159,17 @@ class Controller extends SilverStripeController
                 }
             }
         } catch (IdentityProviderException $e) {
-            $logger = Injector::inst()->get(Logger::class);
+            /** @var LoggerInterface $logger */
+            $logger = Injector::inst()->get(LoggerInterface::class . '.oauth');
             $logger->error('OAuth IdentityProviderException: ' . $e->getMessage());
             $this->httpError(400, 'Invalid access token.');
-            return;
+            return null;
         } catch (Exception $e) {
-            $logger = Injector::inst()->get(Logger::class);
+            /** @var LoggerInterface $logger */
+            $logger = Injector::inst()->get(LoggerInterface::class . '.oauth');
             $logger->error('OAuth Exception: ' . $e->getMessage());
             $this->httpError(400, $e->getMessage());
-            return;
+            return null;
         } finally {
             $session->clear('oauth2');
         }
