@@ -140,20 +140,17 @@ class ControllerTest extends TestCase
         $mockRequest->expects($this->at(2))
             ->method('getVar')
             ->with('scope')
-            ->will($this->returnValue([])); // Leave scopes empty to assert that getDefaultScopes() is called
+            ->will($this->returnValue(['test_scope']));
 
         $mockProvider = $this->getConstructorlessMock(
             GenericProvider::class,
-            ['getDefaultScopes', 'getAuthorizationUrl', 'getState']
+            ['getAuthorizationUrl', 'getState']
         );
         $mockProvider->expects($this->at(0))
-            ->method('getDefaultScopes')
-            ->will($this->returnValue(['default_scope']));
-        $mockProvider->expects($this->at(1))
             ->method('getAuthorizationUrl')
-            ->with(['scope' => ['default_scope']])
+            ->with(['scope' => ['test_scope']])
             ->will($this->returnValue('http://example.com/oauth'));
-        $mockProvider->expects($this->at(2))
+        $mockProvider->expects($this->at(1))
             ->method('getState')
             ->will($this->returnValue('mockstate'));
 
@@ -172,7 +169,7 @@ class ControllerTest extends TestCase
                 'state' => 'mockstate',
                 'provider' => 'ProviderName',
                 'context' => 'testcontext',
-                'scope' => ['default_scope'],
+                'scope' => ['test_scope'],
                 'backurl' => 'http://mysite.com/return'
             ]);
 
