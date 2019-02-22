@@ -155,6 +155,24 @@ class Controller extends SilverStripeController
             foreach ($results as $result) {
                 if ($result instanceof HTTPResponse) {
                     $session->clear('oauth2');
+
+                    // If the response is redirecting to the login page (e.g. on Security::permissionFailure()),
+                    // update the BackURL so it doesn't point to /oauth/callback/
+                    if ($result->isRedirect()) {
+                        $location = $result->getHeader('location');
+                        $relativeLocation = Director::makeRelative($location);
+
+                        // If the URL begins Security/login and a BackURL parameter is set...
+                        if (
+                            strpos($relativeLocation, Security::config()->uninherited('login_url')) === 0
+                            && strpos($relativeLocation, 'BackURL') !== -1
+                        ) {
+                            $session->set('BackURL', $returnUrl);
+                            $location = HTTP::setGetVar('BackURL', $returnUrl, $location);
+                            $result->addHeader('location', $location);
+                        }
+                    }
+                    
                     return $result;
                 }
             }
