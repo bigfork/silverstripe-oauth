@@ -8,10 +8,12 @@ use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use Psr\Log\LoggerInterface;
 use SilverStripe\Control\Controller as SilverStripeController;
 use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTP;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Control\HTTPResponse_Exception;
 use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Security\Security;
 
 class Controller extends SilverStripeController
 {
