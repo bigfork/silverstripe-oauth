@@ -174,7 +174,7 @@ class Controller extends SilverStripeController
                             $result->addHeader('location', $location);
                         }
                     }
-                    
+
                     return $result;
                 }
             }
@@ -185,11 +185,21 @@ class Controller extends SilverStripeController
             $this->httpError(400, 'Invalid access token.');
             return null;
         } catch (Exception $e) {
-            /** @var LoggerInterface $logger */
-            $logger = Injector::inst()->get(LoggerInterface::class . '.oauth');
-            $logger->error('OAuth Exception: ' . $e->getMessage());
-            $this->httpError(400, $e->getMessage());
-            return null;
+            $message = $e->getMessage();
+            $errorHandlers = $this->getHandlersForContext($session->get('oauth2.context'), 'error_handlers');
+
+            // Run handlers to process the error message
+            $results = [];
+            foreach ($errorHandlers as $errorHandlerConfig) {
+                $errorHandler = Injector::inst()->create($errorHandlerConfig['class']);
+                $results[] = $errorHandler->handleError($message, $provider, $request);
+            }
+
+            foreach ($results as $result) {
+                if ($result instanceof HTTPResponse) {
+                    return $result;
+                }
+            }
         } finally {
             $session->clear('oauth2');
         }
@@ -198,15 +208,16 @@ class Controller extends SilverStripeController
     }
 
     /**
-     * Get a list of token handlers for the given context
+     * Get a list of handlers for the given context
      *
      * @param string|null $context
+     * @param string $handlersType
      * @return array
      * @throws Exception
      */
-    protected function getHandlersForContext($context = null)
+    protected function getHandlersForContext($context = null, $handlersType = 'token_handlers')
     {
-        $handlers = $this->config()->get('token_handlers');
+        $handlers = $this->config()->get($handlersType);
         if (empty($handlers)) {
             throw new Exception('No token handlers were registered');
         }
