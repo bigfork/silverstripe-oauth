@@ -120,7 +120,7 @@ use League\OAuth2\Client\Provider\AbstractProvider;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Security\Security;
 
-class LoginErrorHandler implements ErrorHandler
+class ImportEventsErrorHandler implements ErrorHandler
 {
     public function handleError(AbstractProvider $provider, HTTPRequest $request, Exception $exception)
     {
