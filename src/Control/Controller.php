@@ -94,8 +94,9 @@ class Controller extends SilverStripeController
         $context = $request->getVar('context');
         $scope = $request->getVar('scope');
 
+
         // Missing or invalid data means we can't proceed
-        if (!$providerName || !is_array($scope)) {
+        if (!$providerName || !empty($scope) && !is_array($scope)) {
             $this->httpError(404);
             return null;
         }
@@ -103,6 +104,12 @@ class Controller extends SilverStripeController
         /** @var ProviderFactory $providerFactory */
         $providerFactory = Injector::inst()->get(ProviderFactory::class);
         $provider = $providerFactory->getProvider($providerName);
+
+        // Ensure we always have scope to work with
+        if (empty($scope)) {
+            $scope = $provider->defaultScopes;
+        }
+
         $url = $provider->getAuthorizationUrl(['scope' => $scope]);
 
         $request->getSession()->set('oauth2', [
