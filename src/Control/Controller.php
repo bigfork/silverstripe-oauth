@@ -94,20 +94,22 @@ class Controller extends SilverStripeController
         $context = $request->getVar('context');
         $scope = $request->getVar('scope');
 
-
-        // Missing or invalid data means we can't proceed
-        if (!$providerName || !empty($scope) && !is_array($scope)) {
-            $this->httpError(404);
-            return null;
-        }
-
         /** @var ProviderFactory $providerFactory */
         $providerFactory = Injector::inst()->get(ProviderFactory::class);
         $provider = $providerFactory->getProvider($providerName);
 
-        // Ensure we always have scope to work with
-        if (empty($scope)) {
-            $scope = $provider->defaultScopes;
+        /**
+         * Ensure we always have scope to work with.
+         * Example: Apple does not provide any scopes in the result.
+         **/
+        if (empty($scope) && is_callable([$provider, 'getDefaultScopes'])) {
+            $scope = $provider->getDefaultScopes();
+        }
+
+        // Missing or invalid data means we can't proceed
+        if (!$providerName || !is_array($scope)) {
+            $this->httpError(404);
+            return null;
         }
 
         $url = $provider->getAuthorizationUrl(['scope' => $scope]);
@@ -134,14 +136,21 @@ class Controller extends SilverStripeController
     {
         $session = $request->getSession();
 
+        /**
+         * Apple makes a POST instead of a GET request which leads to CORS problems.
+         * This intermediate step was introduced to make it a GET request.
+         */
+        if ($request->postVar('state') && $request->postVar('code')) {
+            // $this->redirect() would not work because the request has to happen on the client side (via JavaScript).
+            return $this->renderWith('OAuthRedirect', [
+                'url' => sprintf("/%s?code=%s&state=%s", $request->getURL(), $request->postVar('code'), $request->postVar('state'))
+            ]);
+        }
+
         if (!$this->validateState($request)) {
             $session->clear('oauth2');
             $this->httpError(400, 'Invalid session state.');
             return null;
-        } else if ($this->validateState($request) === 'isPost') {
-            return $this->renderWith('OAuthRedirect', [
-                'url' => sprintf("/%s?code=%s&state=%s", $request->getURL(), $request->postVar('code'), $request->postVar('state'))
-            ]);
         }
 
         $providerName = $session->get('oauth2.provider');
@@ -238,7 +247,7 @@ class Controller extends SilverStripeController
         }
 
         // If we've been given a context, limit to that context + global handlers.
-        // Otherwise only allow global handlers (i.e. exclude named ones)
+        // Otherwise, only allow global handlers (i.e. exclude named ones)
         $allowedContexts = ['*'];
         if ($context) {
             $allowedContexts[] = $context;
@@ -272,10 +281,6 @@ class Controller extends SilverStripeController
         $state = $request->getVar('state');
         $session = $request->getSession();
         $data = $session->get('oauth2');
-
-        if ($request->postVar('state') && $request->postVar('code')) {
-            return 'isPost';
-        }
 
         // If we're lacking any required data, or the session state doesn't match
         // the one the provider returned, the request is invalid
