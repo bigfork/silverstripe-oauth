@@ -155,3 +155,17 @@ SilverStripe\Core\Injector\Injector:
        - '../oauth.log'
        - 'error'
 ```
+
+## SameSite / POST cookies
+
+Some providers, like Apple, will redirect back to your site with a POST request. When this happens, the default browser behaviour is not to send cookies with the request, meaning that it’s not possible to verify the request as the user’s session is lost. There are two ways to work around this:
+
+1. Mark your session cookie as `SameSite=None; Secure` as detailed [here](https://docs.silverstripe.org/en/4/developer_guides/cookies_and_sessions/sessions/#samesite-attribute)
+2. Set the following YAML value:
+
+```yml
+Bigfork\SilverStripeOAuth\Client\Control\Controller:
+  enable_samesite_workaround_redirect: true
+```
+
+When this is enabled, your site will handle the POST that it receives from your OAuth provider by redirecting the user via a GET request. When this GET request is issued, the site once again has access to the user’s session cookie so the authorisation process can continue as normal.

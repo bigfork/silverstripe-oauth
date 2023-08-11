@@ -29,6 +29,8 @@ class Controller extends SilverStripeController
 
     private static $url_segment = 'oauth';
 
+    private static $enable_samesite_workaround_redirect = false;
+
     /**
      * Logic copied from \SilverStripe\Control\Controller::redirectBack()
      *
@@ -140,11 +142,16 @@ class Controller extends SilverStripeController
          * Apple makes a POST instead of a GET request which leads to CORS problems.
          * This intermediate step was introduced to make it a GET request.
          */
-        if ($request->postVar('state') && $request->postVar('code')) {
-            // $this->redirect() would not work because the request has to happen on the client side (via JavaScript).
-            return $this->renderWith('OAuthRedirect', [
-                'url' => sprintf("/%s?code=%s&state=%s", $request->getURL(), $request->postVar('code'), $request->postVar('state'))
+        if ($request->isPost() && $this->config()->get('enable_samesite_workaround_redirect')) {
+            $response = $this->getResponse();
+            // $this->redirect() would not work because the request has to originate from the browser
+            $redirectHTML = $this->renderWith('Bigfork\\SilverStripeOAuth\\Client\\OAuthRedirect', [
+                'URL' => static::join_links($this->AbsoluteLink(), 'callback'),
+                'Code' => $request->requestVar('code'),
+                'State' => $request->requestVar('state')
             ]);
+            $response->setBody($redirectHTML);
+            return $response;
         }
 
         if (!$this->validateState($request)) {
