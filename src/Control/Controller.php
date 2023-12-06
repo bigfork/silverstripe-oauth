@@ -74,11 +74,12 @@ class Controller extends SilverStripeController
     }
 
     /**
+     * @param string $action
      * @return string
      */
     public function AbsoluteLink($action = '')
     {
-        return static::join_links(Director::absoluteBaseURL(), $this->Link());
+        return static::join_links(Director::absoluteBaseURL(), $this->Link($action));
     }
 
     /**
