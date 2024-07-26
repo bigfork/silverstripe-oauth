@@ -155,7 +155,7 @@ class HelperTest_Controller extends SilverStripeController
 {
     private static $url_segment = 'helpertest';
 
-    public function AbsoluteLink()
+    public function AbsoluteLink($action = '')
     {
         return 'http://mysite.com/helpertest/';
     }
