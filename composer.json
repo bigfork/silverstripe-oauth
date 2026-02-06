@@ -2,7 +2,12 @@
     "name": "bigfork/silverstripe-oauth",
     "type": "silverstripe-vendormodule",
     "description": "SilverStripe OAuth2 authentication, based on the PHP League's OAuth2 client",
-    "keywords": ["silverstripe", "oauth", "oauth2", "authentication"],
+    "keywords": [
+        "silverstripe",
+        "oauth",
+        "oauth2",
+        "authentication"
+    ],
     "authors": [
         {
             "name": "Loz Calver",
@@ -12,10 +17,10 @@
     "license": "BSD-3-Clause",
     "require": {
         "league/oauth2-client": "^2",
-        "silverstripe/framework": "^4 | ^5"
+        "silverstripe/framework": "^6"
     },
     "require-dev": {
-        "phpunit/phpunit": "^5.7"
+        "phpunit/phpunit": "^11.3"
     },
     "autoload": {
         "psr-4": {
@@ -25,7 +30,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "2.x-dev"
+            "dev-master": "3.x-dev"
         }
     },
     "prefer-stable": true,
